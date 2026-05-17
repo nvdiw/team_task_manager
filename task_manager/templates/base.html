@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Task Manager{% endblock %}</title>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-tasks"></i>
+                Task Manager
+            </a>
+            <div class="navbar-menu">
+                {% if user.is_authenticated %}
+                    <a class="nav-link" href="{% url 'accounts:profile' user.id %}">
+                        <i class="fas fa-user"></i>
+                        {{ user.username }}
+                    </a>
+                    <form method="post" action="{% url 'accounts:logout' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link btn-logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </form>
+                {% else %}
+                    <a class="nav-link" href="{% url 'accounts:login' %}">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </a>
+                    <a class="nav-link" href="{% url 'accounts:signup' %}">
+                        <i class="fas fa-user-plus"></i>
+                        Sign Up
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|cut:'alert-' }}">
+                    <i class="fas fa-{% if 'success' in message.tags %}check-circle{% elif 'error' in message.tags %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 Task Manager. Made with <i class="fas fa-heart" style="color: #ef4444;"></i></p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ profile_user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-user-circle"></i> Profile Information</h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h3>{{ profile_user.get_full_name|default:profile_user.username }}</h3>
+                <p><i class="fas fa-at"></i> @{{ profile_user.username }}</p>
+                
+                <hr>
+                
+                <p>
+                    <i class="fas fa-envelope"></i> 
+                    <strong>Email:</strong> {{ profile_user.email|default:"Not provided" }}
+                </p>
+                <p>
+                    <i class="fas fa-calendar-alt"></i> 
+                    <strong>Member since:</strong> {{ profile_user.date_joined|date:"Y-m-d" }}
+                </p>
+                <p>
+                    <i class="fas fa-clock"></i> 
+                    <strong>Last login:</strong> {{ profile_user.last_login|date:"Y-m-d H:i" }}
+                </p>
+                
+                {% if user.id == profile_user.id %}
+                    <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-chart-line"></i> Statistics</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="stat-box">
+                            <i class="fas fa-project-diagram" style="font-size: 2rem; color: var(--primary);"></i>
+                            <div class="stat-number" id="projectCount">0</div>
+                            <p>Projects</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stat-box">
+                            <i class="fas fa-tasks" style="font-size: 2rem; color: var(--secondary);"></i>
+                            <div class="stat-number" id="taskCount">0</div>
+                            <p>Assigned Tasks</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted text-center mt-3">
+                    <i class="fas fa-info-circle"></i> Statistics will be available after adding projects in Phase 3.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
