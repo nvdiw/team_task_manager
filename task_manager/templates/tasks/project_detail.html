@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.title }} - Task Manager{% endblock %}
+
+{% block content %}
+<!-- Project Header -->
+<div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h4><i class="fas fa-folder-open"></i> {{ project.title }}</h4>
+            <small>Created by {{ project.created_by.username }} on {{ project.created_at|date:"Y-m-d" }}</small>
+        </div>
+        <div>
+            {% if user == project.created_by %}
+                <a href="{% url 'tasks:project_edit' project.pk %}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+                <a href="{% url 'tasks:project_delete' project.pk %}" class="btn btn-danger" onclick="return confirm('Are you sure?')">
+                    <i class="fas fa-trash"></i> Delete
+                </a>
+            {% endif %}
+            <a href="{% url 'tasks:project_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <p>{{ project.description|default:"No description provided." }}</p>
+        <hr>
+        <div class="text-muted">
+            <i class="fas fa-users"></i> Members: 
+            {% for member in project.members.all %}
+                <span class="badge">{{ member.username }}</span>
+            {% empty %}
+                No members yet
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Task Button -->
+<div style="margin: 1.5rem 0;">
+    <a href="{% url 'tasks:task_create' project.pk %}" class="btn btn-success">
+        <i class="fas fa-plus"></i> Add New Task
+    </a>
+</div>
+
+<!-- Tasks List -->
+<div class="card">
+    <div class="card-header">
+        <h4><i class="fas fa-tasks"></i> Tasks ({{ tasks.count }})</h4>
+    </div>
+    <div class="card-body">
+        {% if tasks %}
+            {% for task in tasks %}
+                <div class="task-item priority-{{ task.priority|lower }}">
+                    <div style="flex: 1;">
+                        <div>
+                            <strong>
+                                <a href="{% url 'tasks:task_edit' task.pk %}">{{ task.title }}</a>
+                            </strong>
+                            <span class="status-badge status-{{ task.status|lower }}">
+                                <i class="fas fa-{% if task.status == 'TODO' %}circle{% elif task.status == 'IN_PROGRESS' %}spinner{% else %}check-circle{% endif %}"></i>
+                                {{ task.get_status_display }}
+                            </span>
+                            <span class="badge priority-{{ task.priority|lower }}">
+                                <i class="fas fa-flag"></i> {{ task.get_priority_display }}
+                            </span>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.875rem;">
+                            <i class="fas fa-user"></i> Assigned to: {{ task.assigned_to.username|default:"Unassigned" }}
+                            {% if task.deadline %}
+                                | <i class="fas fa-calendar"></i> Due: {{ task.deadline|date:"Y-m-d H:i" }}
+                            {% endif %}
+                        </div>
+                        {% if task.description %}
+                            <div class="text-muted" style="margin-top: 0.5rem;">{{ task.description|truncatewords:15 }}</div>
+                        {% endif %}
+                        
+                        <!-- Comments -->
+                        <div style="margin-top: 0.75rem;">
+                            {% for comment in task.comments.all|slice:":2" %}
+                                <div style="background: var(--light); padding: 0.5rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                                    <small>
+                                        <strong>{{ comment.author.username }}</strong> 
+                                        <span class="text-muted">{{ comment.created_at|date:"Y-m-d H:i" }}</span>
+                                    </small>
+                                    <p style="margin: 0.25rem 0 0;">{{ comment.text }}</p>
+                                </div>
+                            {% endfor %}
+                            
+                            <form method="post" action="{% url 'tasks:comment_add' task.pk %}" style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                                {% csrf_token %}
+                                <input type="text" name="text" class="form-control" placeholder="Add a comment..." style="flex: 1;">
+                                <button type="submit" class="btn btn-primary btn-sm">Comment</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="{% url 'tasks:task_toggle_status' task.pk %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-sync-alt"></i> Change Status
+                        </a>
+                        <a href="{% url 'tasks:task_edit' task.pk %}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'tasks:task_delete' task.pk %}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this task?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center" style="padding: 2rem;">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--gray);"></i>
+                <p>No tasks yet. Click "Add New Task" to get started!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

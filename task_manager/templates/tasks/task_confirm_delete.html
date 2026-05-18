@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Task - Task Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header" style="background: var(--danger);">
+                <h4><i class="fas fa-exclamation-triangle"></i> Delete Task</h4>
+            </div>
+            <div class="card-body text-center">
+                <i class="fas fa-tasks" style="font-size: 4rem; color: var(--danger);"></i>
+                <h3 style="margin: 1rem 0;">Delete "{{ task.title }}"?</h3>
+                <p>This action cannot be undone.</p>
+                
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Yes, Delete
+                    </button>
+                    <a href="{% url 'tasks:project_detail' task.project.pk %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

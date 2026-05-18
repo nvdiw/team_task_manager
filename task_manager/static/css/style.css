@@ -459,3 +459,63 @@ body {
     background: #d1fae5;
     color: #065f46;
 }
+
+/* ========================================
+   Badges & Tags
+   ======================================== */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--gray-light);
+    color: var(--dark);
+}
+
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.ms-3 {
+    margin-left: 0.75rem;
+}
+
+.mt-3 {
+    margin-top: 0.75rem;
+}
+
+/* Priority badges */
+.priority-high {
+    border-left-color: var(--danger);
+    background: #fef2f2;
+}
+
+.priority-medium {
+    border-left-color: var(--warning);
+    background: #fffbeb;
+}
+
+.priority-low {
+    border-left-color: var(--secondary);
+    background: #ecfdf5;
+}
+
+/* Status colors */
+.status-todo {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-in_progress {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-done {
+    background: #d1fae5;
+    color: #065f46;
+}
