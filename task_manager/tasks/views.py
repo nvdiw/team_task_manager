@@ -181,3 +181,19 @@ def comment_delete(request, pk):
         messages.success(request, 'Comment deleted successfully!')
     
     return redirect('tasks:project_detail', pk=project_pk)
+
+@login_required
+def search_projects(request):
+    q = request.GET.get('q', '')
+    
+    projects = Project.objects.all()  # موقتاً
+    
+    if q:
+        projects = projects.filter(
+            Q(title__icontains=q) | Q(description__icontains=q)
+        )
+    
+    return render(request, 'tasks/project_list.html', {
+        'projects': projects,
+        'search_query': q,
+    })

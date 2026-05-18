@@ -20,4 +20,7 @@ urlpatterns = [
     # Comment URLs
     path('comments/add/<int:task_id>/', views.comment_add, name='comment_add'),
     path('comments/<int:pk>/delete/', views.comment_delete, name='comment_delete'),
+
+    # Search
+    path('search_projects/', views.search_projects, name="search_projects"),
 ]
