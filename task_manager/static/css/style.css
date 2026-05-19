@@ -645,3 +645,13 @@ body {
         font-size: 0.9rem;
     }
 }
+
+.bg-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.bg-success {
+    background: var(--secondary);
+    color: white;
+}

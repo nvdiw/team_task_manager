@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django import forms
 from .models import Project, Task, Comment
 
@@ -30,7 +31,7 @@ class TaskForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['assigned_to'].required = False
+        self.fields['assigned_to'].required = True
         self.fields['deadline'].required = False
 
 class CommentForm(forms.ModelForm):

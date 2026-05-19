@@ -104,6 +104,7 @@ def task_create(request, project_id):
             return redirect('tasks:project_detail', pk=project.pk)
     else:
         form = TaskForm()
+        form.fields['assigned_to'].queryset = project.members.all()
     
     return render(request, 'tasks/task_form.html', {
         'form': form,
@@ -127,6 +128,7 @@ def task_edit(request, pk):
             return redirect('tasks:project_detail', pk=task.project.pk)
     else:
         form = TaskForm(instance=task)
+        form.fields['assigned_to'].queryset = task.project.members.all()
     
     return render(request, 'tasks/task_form.html', {
         'form': form,

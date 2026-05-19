@@ -24,6 +24,10 @@ class Project(models.Model):
     def __str__(self):
         return self.title
     
+    def incomplete_tasks_count(self):
+        """Return number of incomplete tasks (TODO and IN_PROGRESS)"""
+        return self.tasks.exclude(status=Task.Status.DONE).count()
+
     class Meta:
         verbose_name = "Project"
         verbose_name_plural = "Projects"

@@ -56,6 +56,9 @@
                             <div class="text-muted">
                                 <i class="fas fa-users"></i> {{ project.members.count }} members
                                 <i class="fas fa-tasks ms-3"></i> {{ project.tasks.count }} tasks
+                                <span class="badge {% if project.incomplete_tasks_count > 0 %}bg-warning{% else %}bg-success{% endif %}" style="margin-left: 0.5rem;">
+                                    <i class="fas fa-clock"></i> {{ project.incomplete_tasks_count }} pending
+                                </span>
                             </div>
                         </div>
                     </div>
