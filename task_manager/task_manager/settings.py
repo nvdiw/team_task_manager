@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-(r!s3d-yl)2@73^4(vd0p$ox#gce0@_59i_imgwi=xrr*chpgb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'tasks',      # Phase 1
     'accounts',   # Phase 2 - NEW
+    'api',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -132,4 +134,13 @@ MESSAGE_TAGS = {
     messages.SUCCESS: 'alert-success',
     messages.WARNING: 'alert-warning',
     messages.ERROR: 'alert-danger',
+}
+
+# Django REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
 }

@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),  # phase 2 - auth
     path('', include('tasks.urls')),              # phase 3 - will create
+    path('api/', include('api.urls')),
 ]
 
 if settings.DEBUG:
