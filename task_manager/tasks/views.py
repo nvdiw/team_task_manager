@@ -88,6 +88,10 @@ def project_delete(request, pk):
 @login_required
 def task_create(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
+
+    if request.user not in project.members.all() and request.user != project.created_by:
+        messages.error(request, "Only members of this project can Create Task")
+        return redirect('tasks:project_detail', pk=project.pk)
     
     if request.method == 'POST':
         form = TaskForm(request.POST)
@@ -110,6 +114,10 @@ def task_create(request, project_id):
 @login_required
 def task_edit(request, pk):
     task = get_object_or_404(Task, pk=pk)
+
+    if request.user != task.project.created_by and request.user != task.created_by:
+        messages.error(request, "Only Creator of this Task, project can Edit Task")
+        return redirect('tasks:project_detail', pk=task.project.pk)
     
     if request.method == 'POST':
         form = TaskForm(request.POST, instance=task)
@@ -130,6 +138,10 @@ def task_edit(request, pk):
 def task_delete(request, pk):
     task = get_object_or_404(Task, pk=pk)
     project_pk = task.project.pk
+
+    if request.user != task.project.created_by and request.user != task.created_by:
+        messages.error(request, "Only Creator of this Task, project can Delete Task")
+        return redirect('tasks:project_detail', pk=task.project.pk)
     
     if request.method == 'POST':
         task.delete()
@@ -141,7 +153,11 @@ def task_delete(request, pk):
 @login_required
 def task_toggle_status(request, pk):
     task = get_object_or_404(Task, pk=pk)
-    
+
+    if request.user not in task.project.members.all() and request.user != task.project.created_by:
+        messages.error(request, "You don't have access to this task")
+        return redirect('tasks:project_list')
+
     # Cycle status: TODO -> IN_PROGRESS -> DONE -> TODO
     if task.status == Task.Status.TODO:
         task.status = Task.Status.IN_PROGRESS
@@ -159,6 +175,10 @@ def task_toggle_status(request, pk):
 @login_required
 def comment_add(request, task_id):
     task = get_object_or_404(Task, pk=task_id)
+
+    if request.user not in task.project.members.all() and request.user != task.project.created_by:
+        messages.error(request, "Only Member of this Project can add Comment")
+        return redirect('tasks:project_list')
     
     if request.method == 'POST':
         form = CommentForm(request.POST)
@@ -175,10 +195,16 @@ def comment_add(request, task_id):
 def comment_delete(request, pk):
     comment = get_object_or_404(Comment, pk=pk)
     project_pk = comment.task.project.pk
+
+    if request.user not in comment.task.project.members.all() and request.user != comment.task.project.created_by:
+        messages.error(request, "Only Member of this Project can delete Comment")
+        return redirect('tasks:project_list')
     
     if request.user == comment.author:
         comment.delete()
         messages.success(request, 'Comment deleted successfully!')
+    else:
+        messages.error(request, "You can only delete your own comments")
     
     return redirect('tasks:project_detail', pk=project_pk)
 
@@ -186,7 +212,8 @@ def comment_delete(request, pk):
 def search_projects(request):
     q = request.GET.get('q', '')
     
-    projects = Project.objects.all()  # موقتاً
+    projects = Project.objects.filter(
+        Q(members=request.user) | Q(created_by=request.user)).distinct()
     
     if q:
         projects = projects.filter(
