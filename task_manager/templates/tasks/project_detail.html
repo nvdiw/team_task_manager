@@ -109,6 +109,32 @@
                     </div>
                 </div>
             {% endfor %}
+            <!-- Pagination for Tasks -->
+            {% if tasks.has_other_pages %}
+            <div class="pagination-container" style="margin-top: 2rem; text-align: center;">
+                <div class="pagination" style="display: inline-flex; gap: 0.5rem; list-style: none; padding: 0;">
+                    {% if tasks.has_previous %}
+                        <a href="?page={{ tasks.previous_page_number }}" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                            Previous
+                        </a>
+                    {% endif %}
+
+                    {% for num in tasks.paginator.page_range %}
+                        {% if tasks.number == num %}
+                            <span class="btn btn-secondary" style="padding: 0.5rem 1rem; background: var(--primary); color: white;">{{ num }}</span>
+                        {% elif num > tasks.number|add:'-3' and num < tasks.number|add:'3' %}
+                            <a href="?page={{ num }}" class="btn btn-primary" style="padding: 0.5rem 1rem;">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if tasks.has_next %}
+                        <a href="?page={{ tasks.next_page_number }}" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         {% else %}
             <div class="text-center" style="padding: 2rem;">
                 <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--gray);"></i>

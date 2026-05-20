@@ -655,3 +655,45 @@ body {
     background: var(--secondary);
     color: white;
 }
+
+/* ========================================
+   Pagination Styles
+   ======================================== */
+.pagination-container {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.pagination {
+    display: inline-flex;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+}
+
+.pagination .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.pagination .btn:hover {
+    transform: translateY(-2px);
+}
+
+.pagination .btn-secondary {
+    background: var(--primary);
+    color: white;
+    cursor: default;
+}
+
+.pagination .btn-primary {
+    background: var(--gray-light);
+    color: var(--dark);
+}
+
+.pagination .btn-primary:hover {
+    background: var(--primary);
+    color: white;
+}

@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from django.core.paginator import Paginator
 from .models import Project, Task, Comment
 from .forms import ProjectForm, TaskForm, CommentForm
 
@@ -10,9 +11,13 @@ from .forms import ProjectForm, TaskForm, CommentForm
 @login_required
 def project_list(request):
     # Show projects where user is member or creator
-    projects = Project.objects.filter(
+    projects_list = Project.objects.filter(
         Q(members=request.user) | Q(created_by=request.user)
     ).distinct()
+    
+    paginator = Paginator(projects_list, 5)
+    page_number = request.GET.get('page')
+    projects = paginator.get_page(page_number)
     
     return render(request, 'tasks/project_list.html', {'projects': projects})
 
@@ -25,7 +30,12 @@ def project_detail(request, pk):
         messages.error(request, 'You do not have access to this project.')
         return redirect('tasks:project_list')
     
-    tasks = project.tasks.all()
+    tasks_list = project.tasks.all()
+    
+    # Pagination for tasks
+    paginator = Paginator(tasks_list, 5)  # 5 tasks per page
+    page_number = request.GET.get('page')
+    tasks = paginator.get_page(page_number)
     
     return render(request, 'tasks/project_detail.html', {
         'project': project,
