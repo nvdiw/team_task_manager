@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Task Manager{% endblock %}
+
+{% block content %}
+
+<!-- Stats Cards Row -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+            <i class="fas fa-project-diagram"></i>
+            <div class="stat-number">{{ total_projects }}</div>
+            <div class="stat-label">Total Projects</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <i class="fas fa-tasks"></i>
+            <div class="stat-number">{{ total_tasks }}</div>
+            <div class="stat-label">Total Tasks</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <i class="fas fa-clock"></i>
+            <div class="stat-number">{{ overdue_tasks }}</div>
+            <div class="stat-label">Overdue Tasks</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <i class="fas fa-percent"></i>
+            <div class="stat-number">{{ completion_rate }}%</div>
+            <div class="stat-label">Completion Rate</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-chart-pie"></i> Task Status</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" width="400" height="300" style="width: 100%; height: auto; max-width: 400px;"></canvas>
+                <div class="chart-legend">
+                    <div><span style="background: #ef4444;"></span> TODO: {{ todo_tasks }}</div>
+                    <div><span style="background: #f59e0b;"></span> In Progress: {{ in_progress_tasks }}</div>
+                    <div><span style="background: #10b981;"></span> Done: {{ done_tasks }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-chart-bar"></i> Task Priorities</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart" width="400" height="300" style="width: 100%; height: auto; max-width: 400px;"></canvas>
+                <div class="chart-legend">
+                    <div><span style="background: #10b981;"></span> Low: {{ low_priority }}</div>
+                    <div><span style="background: #3b82f6;"></span> Medium: {{ medium_priority }}</div>
+                    <div><span style="background: #f59e0b;"></span> High: {{ high_priority }}</div>
+                    <div><span style="background: #ef4444;"></span> Urgent: {{ urgent_priority }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Second Row -->
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-user-check"></i> My Tasks</h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="stat-number">{{ assigned_to_me }}</div>
+                <p>Tasks assigned to me</p>
+                <hr>
+                <div class="stat-number">{{ created_by_me }}</div>
+                <p>Tasks I created</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-calendar-week"></i> Recent Activity</h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="stat-number">{{ recent_tasks }}</div>
+                <p>Tasks created in last 7 days</p>
+                <hr>
+                <div class="stat-number">{{ todo_tasks|add:in_progress_tasks }}</div>
+                <p>Tasks pending</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-trophy"></i> Top Projects</h4>
+            </div>
+            <div class="card-body">
+                {% for project in projects_with_counts %}
+                    <div class="project-item">
+                        <strong>{{ project.title }}</strong>
+                        <span class="badge">{{ project.task_count }} tasks</span>
+                    </div>
+                {% empty %}
+                    <p>No projects yet</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Wait for page to load
+window.addEventListener('load', function() {
+    // Status Pie Chart
+    var statusData = [{{ todo_tasks }}, {{ in_progress_tasks }}, {{ done_tasks }}];
+    var statusColors = ['#ef4444', '#f59e0b', '#10b981'];
+    
+    if (typeof SimpleChart !== 'undefined') {
+        SimpleChart.pie('statusChart', statusData, statusColors);
+        
+        // Priority Bar Chart
+        var priorityLabels = ['Low', 'Medium', 'High', 'Urgent'];
+        var priorityData = [{{ low_priority }}, {{ medium_priority }}, {{ high_priority }}, {{ urgent_priority }}];
+        var priorityColors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+        
+        SimpleChart.bar('priorityChart', priorityLabels, priorityData, priorityColors);
+    } else {
+        console.error('SimpleChart library not loaded');
+    }
+});
+</script>
+{% endblock %}

@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.core.paginator import Paginator
+from django.utils import timezone
 from .models import Project, Task, Comment
 from .forms import ProjectForm, TaskForm, CommentForm
+
 
 # ==================== PROJECT VIEWS ====================
 
@@ -236,3 +238,73 @@ def search_projects(request):
         'projects': projects,
         'search_query': q,
     })
+
+@login_required
+def dashboard(request):
+    # Get user's projects
+    projects = Project.objects.filter(
+        Q(members=request.user) | Q(created_by=request.user)
+    ).distinct()
+    
+    # Get all tasks from user's projects
+    tasks = Task.objects.filter(
+        Q(project__members=request.user) | Q(project__created_by=request.user)
+    ).distinct()
+    
+    # Statistics
+    total_projects = projects.count()
+    total_tasks = tasks.count()
+    
+    # Task status counts
+    todo_tasks = tasks.filter(status=Task.Status.TODO).count()
+    in_progress_tasks = tasks.filter(status=Task.Status.IN_PROGRESS).count()
+    done_tasks = tasks.filter(status=Task.Status.DONE).count()
+    
+    # Task priority counts
+    low_priority = tasks.filter(priority=Task.Priority.LOW).count()
+    medium_priority = tasks.filter(priority=Task.Priority.MEDIUM).count()
+    high_priority = tasks.filter(priority=Task.Priority.HIGH).count()
+    urgent_priority = tasks.filter(priority=Task.Priority.URGENT).count()
+    
+    # Overdue tasks (deadline passed and not done)
+    now = timezone.now()
+    overdue_tasks = tasks.filter(
+        deadline__lt=now,
+        status__in=[Task.Status.TODO, Task.Status.IN_PROGRESS]
+    ).count()
+    
+    # Tasks assigned to me
+    assigned_to_me = tasks.filter(assigned_to=request.user).count()
+    
+    # Tasks I created
+    created_by_me = tasks.filter(created_by=request.user).count()
+    
+    # Completion rate
+    completion_rate = (done_tasks / total_tasks * 100) if total_tasks > 0 else 0
+    
+    # Recent tasks (last 7 days)
+    week_ago = now - timezone.timedelta(days=7)
+    recent_tasks = tasks.filter(created_at__gte=week_ago).count()
+    
+    # Projects with most tasks
+    projects_with_counts = projects.annotate(task_count=Count('tasks')).order_by('-task_count')[:5]
+    
+    context = {
+        'total_projects': total_projects,
+        'total_tasks': total_tasks,
+        'todo_tasks': todo_tasks,
+        'in_progress_tasks': in_progress_tasks,
+        'done_tasks': done_tasks,
+        'low_priority': low_priority,
+        'medium_priority': medium_priority,
+        'high_priority': high_priority,
+        'urgent_priority': urgent_priority,
+        'overdue_tasks': overdue_tasks,
+        'assigned_to_me': assigned_to_me,
+        'created_by_me': created_by_me,
+        'completion_rate': round(completion_rate, 1),
+        'recent_tasks': recent_tasks,
+        'projects_with_counts': projects_with_counts,
+    }
+    
+    return render(request, 'tasks/dashboard.html', context)

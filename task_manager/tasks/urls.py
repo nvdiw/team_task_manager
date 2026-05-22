@@ -23,4 +23,7 @@ urlpatterns = [
 
     # Search
     path('search_projects/', views.search_projects, name="search_projects"),
+
+    # Dashboard
+    path('dashboard/', views.dashboard, name='dashboard'),
 ]
