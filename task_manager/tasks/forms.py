@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django import forms
-from .models import Project, Task, Comment
+from .models import Project, Task, Comment, TaskAttachment
 
 class ProjectForm(forms.ModelForm):
     class Meta:
@@ -37,7 +37,16 @@ class TaskForm(forms.ModelForm):
 class CommentForm(forms.ModelForm):
     class Meta:
         model = Comment
-        fields = ['text']
+        fields = ['text', 'image']
         widgets = {
             'text': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Write a comment...'}),
+            'image': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'})
+        }
+
+class TaskAttachmentForm(forms.ModelForm):
+    class Meta:
+        model = TaskAttachment
+        fields = ['file']
+        widgets = {
+            'file': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*,.pdf,.doc,.docx,.txt'})
         }

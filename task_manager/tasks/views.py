@@ -6,8 +6,8 @@ from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import Project, Task, Comment
-from .forms import ProjectForm, TaskForm, CommentForm
+from .models import Project, Task, Comment, TaskAttachment
+from .forms import ProjectForm, TaskForm, CommentForm, TaskAttachmentForm
 
 
 # ==================== PROJECT VIEWS ====================
@@ -71,7 +71,11 @@ def project_detail(request, pk):
     
     if deadline_to:
         tasks_list = tasks_list.filter(deadline__lte=deadline_to)
-    
+
+    # Instead of just comments, send activities for each task
+    for task in tasks_list:
+        task.activities = task.get_activities()
+
     # Pagination (5 tasks per page)
     paginator = Paginator(tasks_list, 5)
     page_number = request.GET.get('page')
@@ -247,7 +251,7 @@ def comment_add(request, task_id):
         return redirect('tasks:project_list')
     
     if request.method == 'POST':
-        form = CommentForm(request.POST)
+        form = CommentForm(request.POST, request.FILES)
         if form.is_valid():
             comment = form.save(commit=False)
             comment.task = task
@@ -407,3 +411,44 @@ def dashboard(request):
     }
     
     return render(request, 'tasks/dashboard.html', context)
+
+
+@login_required
+def upload_attachment(request, task_id):
+    task = get_object_or_404(Task, pk=task_id)
+    
+    # Check permission
+    if request.user not in task.project.members.all() and request.user != task.project.created_by:
+        messages.error(request, 'You do not have permission to upload files.')
+        return redirect('tasks:project_detail', pk=task.project.pk)
+    
+    if request.method == 'POST':
+        form = TaskAttachmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            attachment = form.save(commit=False)
+            attachment.task = task
+            attachment.uploaded_by = request.user
+            attachment.filename = request.FILES['file'].name
+            attachment.file_size = request.FILES['file'].size
+            attachment.save()
+            messages.success(request, f'File "{attachment.filename}" uploaded successfully!')
+    
+    return redirect('tasks:project_detail', pk=task.project.pk)
+
+
+@login_required
+def delete_attachment(request, pk):
+    attachment = get_object_or_404(TaskAttachment, pk=pk)
+    task_pk = attachment.task.project.pk
+    
+    # Check permission (only uploader or project creator)
+    if request.user != attachment.uploaded_by and request.user != attachment.task.project.created_by:
+        messages.error(request, 'You do not have permission to delete this file.')
+        return redirect('tasks:project_detail', pk=task_pk)
+    
+    # Delete the file from storage
+    attachment.file.delete()
+    attachment.delete()
+    messages.success(request, 'File deleted successfully!')
+    
+    return redirect('tasks:project_detail', pk=task_pk)

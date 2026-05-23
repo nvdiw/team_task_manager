@@ -23,7 +23,11 @@ urlpatterns = [
 
     # Search
     path('search_projects/', views.search_projects, name="search_projects"),
-
+    
     # Dashboard
     path('dashboard/', views.dashboard, name='dashboard'),
+
+    # Attachment URLs
+    path('attachments/upload/<int:task_id>/', views.upload_attachment, name='upload_attachment'),
+    path('attachments/delete/<int:pk>/', views.delete_attachment, name='delete_attachment'),
 ]

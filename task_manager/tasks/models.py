@@ -98,6 +98,38 @@ class Task(models.Model):
         verbose_name = "Task"
         verbose_name_plural = "Tasks"
         ordering = ['-priority', 'deadline']
+    
+    def get_activities(self):
+        """Return all activities (comments + attachments) sorted by time"""
+        activities = []
+        
+        # Add comments
+        for comment in self.comments.all():
+            activities.append({
+                'type': 'comment',
+                'date': comment.created_at,
+                'data': comment,
+                'author': comment.author,
+                'text': comment.text
+            })
+        
+        # Add attachments (if the model exists)
+        if hasattr(self, 'attachments'):
+            for attachment in self.attachments.all():
+                activities.append({
+                    'type': 'attachment',
+                    'date': attachment.uploaded_at,
+                    'data': attachment,
+                    'author': attachment.uploaded_by,
+                    'filename': attachment.filename,
+                    'file_url': attachment.file.url,
+                    'file_size': attachment.file_size
+                })
+        
+        # Sort by date (newest first)
+        activities.sort(key=lambda x: x['date'], reverse=True)
+        
+        return activities
 
 
 # Comment Model
@@ -115,6 +147,7 @@ class Comment(models.Model):
         verbose_name="Author"
     )
     text = models.TextField(verbose_name="Comment Text")
+    image = models.ImageField(upload_to='comment_images/%Y/%m/%d/', null=True, blank=True, verbose_name="Image")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
     
     def __str__(self):
@@ -124,3 +157,18 @@ class Comment(models.Model):
         verbose_name = "Comment"
         verbose_name_plural = "Comments"
         ordering = ['created_at']
+
+
+class TaskAttachment(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='task_attachments/%Y/%m/%d/')
+    filename = models.CharField(max_length=255)
+    file_size = models.IntegerField(help_text="File size in bytes")
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_files')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.filename
+    
+    class Meta:
+        ordering = ['-uploaded_at']

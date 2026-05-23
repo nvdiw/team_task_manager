@@ -184,23 +184,75 @@
                         {% if task.description %}
                             <div class="text-muted" style="margin-top: 0.5rem;">{{ task.description|truncatewords:15 }}</div>
                         {% endif %}
-                        
-                        <!-- Comments -->
+                        <!-- Activities (Comments + Attachments combined) -->
                         <div style="margin-top: 0.75rem;">
-                            {% for comment in task.comments.all|slice:":2" %}
-                                <div style="background: var(--light); padding: 0.5rem; border-radius: 8px; margin-bottom: 0.5rem;">
-                                    <small>
-                                        <strong>{{ comment.author.username }}</strong> 
-                                        <span class="text-muted">{{ comment.created_at|date:"Y-m-d H:i" }}</span>
-                                    </small>
-                                    <p style="margin: 0.25rem 0 0;">{{ comment.text }}</p>
-                                </div>
-                            {% endfor %}
+                            {% with activities=task.get_activities %}
+                                {% if activities %}
+                                    <div class="activities-list" style="margin-bottom: 0.5rem;">
+                                        <strong><i class="fas fa-history"></i> Activities ({{ activities|length }}):</strong>
+                                        <div style="margin-top: 0.5rem;">
+                                            {% for activity in activities %}
+                                                <div class="activity-item" style="background: var(--light); padding: 0.5rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                                {% if activity.type == 'comment' %}
+                                                                <i class="fas fa-comment" style="color: #6366f1;"></i>
+                                                                <strong>{{ activity.author.username }}</strong>
+                                                                <span class="text-muted">commented:</span>
+                                                                <p style="margin: 0.25rem 0 0 1.5rem;">{{ activity.text }}</p>
+                                                                {% if activity.data.image %}
+                                                                    <div style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                                                                        <a href="{{ activity.data.image.url }}" target="_blank">
+                                                                            <img src="{{ activity.data.image.url }}" alt="Comment image" style="max-width: 200px; max-height: 150px; border-radius: 8px;">
+                                                                        </a>
+                                                                    </div>
+                                                                {% endif %}
+                                                            {% else %}
+                                                                <i class="fas fa-paperclip" style="color: #10b981;"></i>
+                                                                <strong>{{ activity.author.username }}</strong>
+                                                                <span class="text-muted">uploaded:</span>
+                                                                <a href="{{ activity.file_url }}" target="_blank" style="margin-left: 0.25rem;">
+                                                                    <i class="fas fa-file-{% if activity.filename|slice:'-3:' == 'pdf' %}pdf{% elif activity.filename|slice:'-3:' == 'jpg' or activity.filename|slice:'-4:' == 'jpeg' or activity.filename|slice:'-3:' == 'png' %}image{% else %}alt{% endif %}"></i>
+                                                                    {{ activity.filename }}
+                                                                </a>
+                                                                <small class="text-muted">({{ activity.file_size|filesizeformat }})</small>
+                                                                {% if user == activity.author or user == project.created_by %}
+                                                                    <a href="{% url 'tasks:delete_attachment' activity.data.id %}" class="text-danger" style="margin-left: 0.5rem;" onclick="return confirm('Delete this file?')">
+                                                                        <i class="fas fa-trash-alt"></i>
+                                                                    </a>
+                                                                {% endif %}
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="text-muted" style="font-size: 0.7rem;">
+                                                            {{ activity.date|timesince }} ago
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endwith %}
                             
-                            <form method="post" action="{% url 'tasks:comment_add' task.pk %}" style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                            <!-- Add Comment Form with Image Upload -->
+                            <form method="post" action="{% url 'tasks:comment_add' task.pk %}" enctype="multipart/form-data" style="margin-top: 0.5rem;">
                                 {% csrf_token %}
-                                <input type="text" name="text" class="form-control" placeholder="Add a comment..." style="flex: 1;">
-                                <button type="submit" class="btn btn-primary btn-sm">Comment</button>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <input type="text" name="text" class="form-control" placeholder="Add a comment..." style="flex: 2; min-width: 150px;">
+                                    <input type="file" name="image" class="form-control" accept="image/*" style="flex: 1; min-width: 120px;">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-paper-plane"></i> Post
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <!-- Upload File Form -->
+                            <form method="post" action="{% url 'tasks:upload_attachment' task.pk %}" enctype="multipart/form-data" style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
+                                {% csrf_token %}
+                                <input type="file" name="file" class="form-control" style="flex: 1; font-size: 0.75rem;">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-upload"></i> Upload
+                                </button>
                             </form>
                         </div>
                     </div>
