@@ -59,10 +59,24 @@
                             <strong>
                                 <a href="{% url 'tasks:task_edit' task.pk %}">{{ task.title }}</a>
                             </strong>
-                            <span class="status-badge status-{{ task.status|lower }}">
-                                <i class="fas fa-{% if task.status == 'TODO' %}circle{% elif task.status == 'IN_PROGRESS' %}spinner{% else %}check-circle{% endif %}"></i>
-                                {{ task.get_status_display }}
-                            </span>
+                            
+                            <!-- Status Dropdown (only for assigned user or project creator) -->
+                            {% if user == task.assigned_to or user == project.created_by %}
+                                <form method="post" action="{% url 'tasks:task_toggle_status' task.pk %}" style="display: inline-block; margin-left: 0.5rem;">
+                                    {% csrf_token %}
+                                    <select name="status" class="form-select-sm" onchange="this.form.submit()">
+                                        <option value="TODO" {% if task.status == 'TODO' %}selected{% endif %}>📋 TODO</option>
+                                        <option value="IN_PROGRESS" {% if task.status == 'IN_PROGRESS' %}selected{% endif %}>⚙️ In Progress</option>
+                                        <option value="DONE" {% if task.status == 'DONE' %}selected{% endif %}>✅ Done</option>
+                                    </select>
+                                </form>
+                            {% else %}
+                                <span class="status-badge status-{{ task.status|lower }}">
+                                    <i class="fas fa-{% if task.status == 'TODO' %}circle{% elif task.status == 'IN_PROGRESS' %}spinner{% else %}check-circle{% endif %}"></i>
+                                    {{ task.get_status_display }}
+                                </span>
+                            {% endif %}
+                            
                             <span class="badge priority-{{ task.priority|lower }}">
                                 <i class="fas fa-flag"></i> {{ task.get_priority_display }}
                             </span>
@@ -97,18 +111,19 @@
                         </div>
                     </div>
                     <div>
-                        <a href="{% url 'tasks:task_toggle_status' task.pk %}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-sync-alt"></i> Change Status
-                        </a>
-                        <a href="{% url 'tasks:task_edit' task.pk %}" class="btn btn-warning btn-sm">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <a href="{% url 'tasks:task_delete' task.pk %}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this task?')">
-                            <i class="fas fa-trash"></i>
-                        </a>
+                        <!-- Edit and Delete buttons (only for project creator) -->
+                        {% if user == project.created_by %}
+                            <a href="{% url 'tasks:task_edit' task.pk %}" class="btn btn-warning btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'tasks:task_delete' task.pk %}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this task?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}
+            
             <!-- Pagination for Tasks -->
             {% if tasks.has_other_pages %}
             <div class="pagination-container" style="margin-top: 2rem; text-align: center;">

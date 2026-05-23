@@ -758,3 +758,93 @@ body {
 .project-item:last-child {
     border-bottom: none;
 }
+
+/* Task & Comment Lists */
+.task-list, .comment-list, .project-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.task-item, .comment-item, .project-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--gray-light);
+}
+.task-item:last-child, .comment-item:last-child, .project-item:last-child {
+    border-bottom: none;
+}
+.task-item.overdue {
+    background-color: #fee2e2;
+    margin: 0 -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 8px;
+}
+.task-item.urgent {
+    background-color: #fffbeb;
+    margin: 0 -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 8px;
+}
+.badge.bg-danger {
+    background: #ef4444;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+}
+.badge.bg-warning {
+    background: #f59e0b;
+    color: white;
+}
+.mt-3 {
+    margin-top: 1rem;
+}
+.progress-circle canvas {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Status Select Dropdown */
+.form-select-sm {
+    display: inline-block;
+    padding: 0.25rem 1.5rem 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.2;
+    border-radius: 4px;
+    border: 1px solid var(--gray-light);
+    background-color: var(--white);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.form-select-sm:hover {
+    border-color: var(--primary);
+    background-color: var(--light);
+}
+
+.form-select-sm:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* Profile Page Progress Bar */
+.progress {
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+/* Recent Task Items */
+.recent-task-item:hover {
+    background-color: var(--light);
+    padding-left: 0.5rem;
+    transition: all 0.2s ease;
+}

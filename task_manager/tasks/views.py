@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum, FloatField
+from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator
 from django.utils import timezone
 from .models import Project, Task, Comment
@@ -167,21 +168,22 @@ def task_delete(request, pk):
 @login_required
 def task_toggle_status(request, pk):
     task = get_object_or_404(Task, pk=pk)
-
-    if request.user not in task.project.members.all() and request.user != task.project.created_by:
-        messages.error(request, "You don't have access to this task")
-        return redirect('tasks:project_list')
-
-    # Cycle status: TODO -> IN_PROGRESS -> DONE -> TODO
-    if task.status == Task.Status.TODO:
-        task.status = Task.Status.IN_PROGRESS
-    elif task.status == Task.Status.IN_PROGRESS:
-        task.status = Task.Status.DONE
-    else:
-        task.status = Task.Status.TODO
     
-    task.save()
-    messages.success(request, f'Task status changed to {task.get_status_display()}')
+    # Check permission: only assigned_to or project creator
+    if request.user != task.assigned_to and request.user != task.project.created_by:
+        messages.error(request, 'You do not have permission to change this task status.')
+        return redirect('tasks:project_detail', pk=task.project.pk)
+    
+    # Get new status from POST data
+    new_status = request.POST.get('status')
+    
+    if new_status and new_status in [Task.Status.TODO, Task.Status.IN_PROGRESS, Task.Status.DONE]:
+        task.status = new_status
+        task.save()
+        messages.success(request, f'Task status changed to {task.get_status_display()}')
+    else:
+        messages.error(request, 'Invalid status selected.')
+    
     return redirect('tasks:project_detail', pk=task.project.pk)
 
 # ==================== COMMENT VIEWS ====================
@@ -266,13 +268,6 @@ def dashboard(request):
     high_priority = tasks.filter(priority=Task.Priority.HIGH).count()
     urgent_priority = tasks.filter(priority=Task.Priority.URGENT).count()
     
-    # Overdue tasks (deadline passed and not done)
-    now = timezone.now()
-    overdue_tasks = tasks.filter(
-        deadline__lt=now,
-        status__in=[Task.Status.TODO, Task.Status.IN_PROGRESS]
-    ).count()
-    
     # Tasks assigned to me
     assigned_to_me = tasks.filter(assigned_to=request.user).count()
     
@@ -283,11 +278,59 @@ def dashboard(request):
     completion_rate = (done_tasks / total_tasks * 100) if total_tasks > 0 else 0
     
     # Recent tasks (last 7 days)
+    now = timezone.now()
     week_ago = now - timezone.timedelta(days=7)
     recent_tasks = tasks.filter(created_at__gte=week_ago).count()
     
     # Projects with most tasks
     projects_with_counts = projects.annotate(task_count=Count('tasks')).order_by('-task_count')[:5]
+    
+    # Overdue tasks count (for stat card)
+    overdue_tasks_count = tasks.filter(
+        deadline__lt=now,
+        status__in=[Task.Status.TODO, Task.Status.IN_PROGRESS]
+    ).count()
+    
+    # Overdue tasks list (for displaying)
+    overdue_tasks_list = tasks.filter(
+        deadline__lt=now,
+        status__in=[Task.Status.TODO, Task.Status.IN_PROGRESS]
+    ).select_related('project', 'assigned_to')[:10]
+    
+    # Deadline today
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+    deadline_today_count = tasks.filter(
+        deadline__range=(today_start, today_end),
+        status__in=[Task.Status.TODO, Task.Status.IN_PROGRESS]
+    ).count()
+    
+    # Overall project progress
+    project_progress = []
+    for p in projects:
+        total = p.tasks.count()
+        done = p.tasks.filter(status=Task.Status.DONE).count()
+        progress = (done / total * 100) if total > 0 else 0
+        project_progress.append(progress)
+    overall_progress = round(sum(project_progress) / len(project_progress), 1) if project_progress else 0
+    
+    # Top projects with most overdue tasks
+    top_overdue_projects = Project.objects.filter(
+        Q(members=request.user) | Q(created_by=request.user)
+    ).annotate(
+        overdue_count=Count('tasks', filter=Q(tasks__deadline__lt=now, tasks__status__in=[Task.Status.TODO, Task.Status.IN_PROGRESS]))
+    ).filter(overdue_count__gt=0).order_by('-overdue_count')[:3]
+    
+    # Recent comments
+    recent_comments = Comment.objects.filter(
+        Q(task__project__members=request.user) | Q(task__project__created_by=request.user)
+    ).select_related('author', 'task__project').order_by('-created_at')[:5]
+    
+    # Urgent tasks in progress
+    urgent_in_progress = tasks.filter(
+        priority=Task.Priority.URGENT,
+        status=Task.Status.IN_PROGRESS
+    ).select_related('project', 'assigned_to')[:5]
     
     context = {
         'total_projects': total_projects,
@@ -299,12 +342,18 @@ def dashboard(request):
         'medium_priority': medium_priority,
         'high_priority': high_priority,
         'urgent_priority': urgent_priority,
-        'overdue_tasks': overdue_tasks,
+        'overdue_tasks': overdue_tasks_count,
         'assigned_to_me': assigned_to_me,
         'created_by_me': created_by_me,
         'completion_rate': round(completion_rate, 1),
         'recent_tasks': recent_tasks,
         'projects_with_counts': projects_with_counts,
+        'overdue_tasks_list': overdue_tasks_list,
+        'deadline_today_count': deadline_today_count,
+        'overall_progress': overall_progress,
+        'top_overdue_projects': top_overdue_projects,
+        'recent_comments': recent_comments,
+        'urgent_in_progress': urgent_in_progress,
     }
     
     return render(request, 'tasks/dashboard.html', context)

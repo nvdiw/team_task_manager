@@ -124,6 +124,134 @@
     </div>
 </div>
 
+<!-- New Advanced Sections -->
+<div class="row">
+    <!-- Overdue Tasks & Urgent In Progress -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header" style="background: #dc2626; color: white;">
+                <h4><i class="fas fa-exclamation-triangle"></i> ⚠️ Overdue Tasks</h4>
+            </div>
+            <div class="card-body">
+                {% if overdue_tasks_list %}
+                    <ul class="task-list">
+                        {% for task in overdue_tasks_list %}
+                            <li class="task-item overdue">
+                                <strong>
+                                    <a href="{% url 'tasks:project_detail' task.project.pk %}">
+                                        {{ task.title }}
+                                    </a>
+                                </strong>
+                                <span class="badge bg-danger">Due: {{ task.deadline|date:"Y-m-d H:i" }}</span>
+                                <div class="text-muted small">
+                                    {{ task.project.title }} / assigned to {{ task.assigned_to.username|default:"unassigned" }}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-success">🎉 No overdue tasks! Great job!</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header" style="background: #f59e0b;">
+                <h4><i class="fas fa-fire"></i> 🔥 Urgent & In Progress</h4>
+            </div>
+            <div class="card-body">
+                {% if urgent_in_progress %}
+                    <ul class="task-list">
+                        {% for task in urgent_in_progress %}
+                            <li class="task-item urgent">
+                                <strong><a href="{% url 'tasks:project_detail' task.project.pk %}">{{ task.title }}</a></strong>
+                                <span class="badge bg-warning">Urgent</span>
+                                <div class="text-muted small">{{ task.project.title }} / {{ task.assigned_to.username|default:"unassigned" }}</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No urgent tasks in progress. ✨</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Overdue Projects & Overall Progress -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header" style="background: #3b82f6;">
+                <h4><i class="fas fa-chart-simple"></i> 📈 Overall Progress</h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="progress-circle" style="position: relative;">
+                    <canvas id="progressChart" width="150" height="150" style="width: 150px; height: 150px;"></canvas>
+                    <div class="progress-percent" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: bold;">{{ overall_progress }}%</div>
+                </div>
+                <p class="mt-2">Average completion across your projects</p>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header" style="background: #8b5cf6;">
+                <h4><i class="fas fa-chart-line"></i> 🏆 Projects with Most Overdue</h4>
+            </div>
+            <div class="card-body">
+                {% if top_overdue_projects %}
+                    <ul class="project-list">
+                        {% for project in top_overdue_projects %}
+                            <li class="project-item">
+                                <strong><a href="{% url 'tasks:project_detail' project.pk %}">{{ project.title }}</a></strong>
+                                <span class="badge bg-danger">{{ project.overdue_count }} overdue</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No overdue tasks in any project. Keep it up!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Comments & Deadline Today -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header" style="background: #10b981;">
+                <h4><i class="fas fa-comments"></i> 💬 Recent Comments</h4>
+            </div>
+            <div class="card-body">
+                {% if recent_comments %}
+                    <ul class="comment-list">
+                        {% for comment in recent_comments %}
+                            <li class="comment-item">
+                                <strong>{{ comment.author.username }}</strong> on <a href="{% url 'tasks:project_detail' comment.task.project.pk %}">{{ comment.task.title }}</a>
+                                <div class="text-muted small">{{ comment.text|truncatewords:15 }}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">{{ comment.created_at|timesince }} ago</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No comments yet. Start a discussion!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header" style="background: #ec489a;">
+                <h4><i class="fas fa-calendar-day"></i> 📅 Deadline Today</h4>
+            </div>
+            <div class="card-body text-center">
+                <div class="stat-number">{{ deadline_today_count }}</div>
+                <p>tasks due today</p>
+                <hr>
+                <div class="stat-number">{{ todo_tasks|add:in_progress_tasks }}</div>
+                <p>total pending tasks</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -143,6 +271,9 @@ window.addEventListener('load', function() {
         var priorityColors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
         
         SimpleChart.bar('priorityChart', priorityLabels, priorityData, priorityColors);
+        
+        // Overall Progress Doughnut Chart
+        SimpleChart.doughnut('progressChart', [{{ overall_progress }}, 100 - {{ overall_progress }}], ['#3b82f6', '#e5e7eb']);
     } else {
         console.error('SimpleChart library not loaded');
     }

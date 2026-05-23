@@ -80,5 +80,39 @@ const SimpleChart = {
             ctx.fillStyle = '#333';
             ctx.fillText(data[i], x + barWidth / 4, y - 5);
         }
+    },
+
+    // Draw a doughnut chart (for progress)
+    doughnut: function(canvasId, data, colors) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = Math.min(width, height) / 2 - 5;
+        let startAngle = -Math.PI / 2;
+        const total = data.reduce((a, b) => a + b, 0);
+        
+        ctx.clearRect(0, 0, width, height);
+        
+        for (let i = 0; i < data.length; i++) {
+            const angle = (data[i] / total) * Math.PI * 2;
+            const endAngle = startAngle + angle;
+            ctx.beginPath();
+            ctx.fillStyle = colors[i];
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fill();
+            startAngle = endAngle;
+        }
+        
+        // Draw inner circle to make it a doughnut
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius * 0.65, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
     }
 };
