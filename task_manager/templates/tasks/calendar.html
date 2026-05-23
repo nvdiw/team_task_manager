@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Calendar - Task Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/calendar.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;">
+        <h4><i class="fas fa-calendar-alt"></i> Task Calendar</h4>
+        <small>View and manage your tasks by deadline</small>
+    </div>
+    <div class="card-body">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- Modal for showing tasks -->
+<div id="taskModal" class="calendar-modal">
+    <div class="calendar-modal-content">
+        <div class="calendar-modal-header">
+            <h3 id="modalTitle">Tasks</h3>
+            <span class="calendar-modal-close" onclick="closeModal()">&times;</span>
+        </div>
+        <div id="modalBody" class="calendar-modal-body">
+            <p style="text-align: center;">Loading...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/calendar.js' %}"></script>
+<script>
+let calendar;
+let tasksData = [];
+
+// Fetch tasks from API
+async function fetchTasks() {
+    try {
+        console.log('Fetching tasks from API...');
+        const response = await fetch('/calendar-data/');
+        
+        if (!response.ok) {
+            console.error('API response not OK:', response.status);
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const tasks = await response.json();
+        console.log('Tasks loaded:', tasks.length);
+        tasksData = tasks;
+        
+        // Initialize calendar
+        calendar = new ModernCalendar(document.getElementById('calendar'), {
+            currentDate: new Date(),
+            tasks: tasks,
+            onDateClick: function(date) {
+                showTasksForDate(date);
+            },
+            onTaskClick: function(task) {
+                showTaskDetails(task);
+            }
+        });
+        
+        window.calendar = calendar;
+        
+    } catch (error) {
+        console.error('Error fetching tasks:', error);
+        document.getElementById('calendar').innerHTML = '<p style="color: red; text-align: center;">Error loading calendar. Please refresh the page.</p>';
+    }
+}
+
+function showTasksForDate(dateStr) {
+    const tasks = tasksData.filter(task => task.deadline && task.deadline.split('T')[0] === dateStr);
+    
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    
+    modalTitle.innerHTML = `<i class="fas fa-calendar-day"></i> Tasks for ${dateStr}`;
+    
+    if (tasks.length === 0) {
+        modalBody.innerHTML = '<p style="text-align: center;"><i class="fas fa-check-circle"></i> No tasks for this date ✨</p>';
+    } else {
+        let html = '';
+        tasks.forEach(task => {
+            const statusText = {
+                'TODO': '📋 TODO',
+                'IN_PROGRESS': '⚙️ In Progress',
+                'DONE': '✅ Done'
+            };
+            const priorityColor = {
+                'LOW': '#10b981',
+                'MEDIUM': '#3b82f6',
+                'HIGH': '#f59e0b',
+                'URGENT': '#ef4444'
+            };
+            
+            html += `
+                <div class="calendar-task-item" onclick="window.location.href='/projects/${task.project}/'">
+                    <div class="calendar-task-title">
+                        ${task.title}
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-left: 8px; background: ${priorityColor[task.priority]}; color: white;">
+                            ${task.priority}
+                        </span>
+                    </div>
+                    <div class="calendar-task-meta">
+                        <span><i class="fas fa-tasks"></i> ${statusText[task.status] || task.status}</span>
+                        <span><i class="fas fa-user"></i> ${task.assigned_to || 'Unassigned'}</span>
+                        <span><i class="fas fa-folder"></i> Project ID: ${task.project}</span>
+                    </div>
+                </div>
+            `;
+        });
+        modalBody.innerHTML = html;
+    }
+    
+    document.getElementById('taskModal').style.display = 'block';
+}
+
+function showTaskDetails(task) {
+    const statusText = {
+        'TODO': '📋 TODO',
+        'IN_PROGRESS': '⚙️ In Progress',
+        'DONE': '✅ Done'
+    };
+    const priorityText = {
+        'LOW': '🟢 Low',
+        'MEDIUM': '🔵 Medium',
+        'HIGH': '🟠 High',
+        'URGENT': '🔴 Urgent'
+    };
+    
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    
+    modalTitle.innerHTML = '<i class="fas fa-tasks"></i> Task Details';
+    
+    modalBody.innerHTML = `
+        <div style="padding: 0.5rem;">
+            <div style="margin-bottom: 1rem;">
+                <strong><i class="fas fa-heading"></i> Title:</strong>
+                <p style="margin-top: 0.25rem;">${task.title}</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <strong><i class="fas fa-align-left"></i> Description:</strong>
+                <p style="margin-top: 0.25rem;">${task.description || 'No description'}</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <strong><i class="fas fa-chart-line"></i> Status:</strong>
+                <p style="margin-top: 0.25rem;">${statusText[task.status] || task.status}</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <strong><i class="fas fa-flag"></i> Priority:</strong>
+                <p style="margin-top: 0.25rem;">${priorityText[task.priority] || task.priority}</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <strong><i class="fas fa-user"></i> Assigned To:</strong>
+                <p style="margin-top: 0.25rem;">${task.assigned_to || 'Unassigned'}</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <strong><i class="fas fa-calendar"></i> Deadline:</strong>
+                <p style="margin-top: 0.25rem;">${task.deadline ? new Date(task.deadline).toLocaleString() : 'No deadline'}</p>
+            </div>
+            <div style="margin-top: 1rem; text-align: center;">
+                <button class="btn btn-primary" onclick="window.location.href='/projects/${task.project}/'">
+                    <i class="fas fa-eye"></i> View in Project
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('taskModal').style.display = 'block';
+}
+
+function closeModal() {
+    document.getElementById('taskModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('taskModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+
+// Initialize calendar when page loads
+document.addEventListener('DOMContentLoaded', fetchTasks);
+</script>
+{% endblock %}

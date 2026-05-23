@@ -11,6 +11,7 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/calendar.css' %}">
 </head>
 <body>
     <!-- Navigation -->
@@ -22,6 +23,10 @@
             </a>
             <div class="navbar-menu">
                 {% if user.is_authenticated %}
+                    <a class="nav-link" href="{% url 'tasks:calendar' %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        Calendar
+                    </a>
                     <a class="nav-link" href="{% url 'tasks:dashboard' %}">
                         <i class="fas fa-chart-line"></i>
                         Dashboard
@@ -76,7 +81,7 @@
 
     <!-- JavaScript files (at the end for better performance) -->
     <script src="{% static 'js/simple-chart.js' %}"></script>
-    
+    <script src="{% static 'js/calendar.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

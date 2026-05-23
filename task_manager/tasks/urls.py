@@ -30,4 +30,9 @@ urlpatterns = [
     # Attachment URLs
     path('attachments/upload/<int:task_id>/', views.upload_attachment, name='upload_attachment'),
     path('attachments/delete/<int:pk>/', views.delete_attachment, name='delete_attachment'),
+
+    # Calendar URLs
+    path('calendar/', views.calendar_view, name='calendar'),
+    path('calendar/tasks/<str:date>/', views.calendar_tasks, name='calendar_tasks'),
+    path('calendar-data/', views.calendar_data, name='calendar_data'),
 ]

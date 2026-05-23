@@ -903,3 +903,22 @@ body {
 .attachment-item a:hover {
     text-decoration: underline;
 }
+
+
+/* Calendar Styles */
+.fc .fc-button-primary {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+.fc .fc-button-primary:hover {
+    background-color: var(--primary-dark) !important;
+}
+.fc .fc-button-primary:disabled {
+    background-color: var(--gray) !important;
+}
+.fc .fc-daygrid-day-number {
+    font-weight: 500;
+}
+.fc .fc-daygrid-day.fc-day-today {
+    background-color: rgba(99, 102, 241, 0.1) !important;
+}

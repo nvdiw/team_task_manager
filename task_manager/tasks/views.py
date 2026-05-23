@@ -6,6 +6,9 @@ from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth.models import User
+import json
+from datetime import datetime
+from django.http import JsonResponse
 from .models import Project, Task, Comment, TaskAttachment
 from .forms import ProjectForm, TaskForm, CommentForm, TaskAttachmentForm
 
@@ -452,3 +455,66 @@ def delete_attachment(request, pk):
     messages.success(request, 'File deleted successfully!')
     
     return redirect('tasks:project_detail', pk=task_pk)
+
+
+@login_required
+def calendar_view(request):
+    return render(request, 'tasks/calendar.html')
+
+@login_required
+def calendar_tasks(request, date):
+    """Return tasks for a specific date as JSON"""
+    try:
+        selected_date = datetime.strptime(date, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': 'Invalid date format'}, status=400)
+    
+    # Get user's projects
+    projects = Project.objects.filter(
+        Q(members=request.user) | Q(created_by=request.user)
+    ).distinct()
+    
+    # Get tasks with deadline on selected date
+    tasks = Task.objects.filter(
+        Q(project__members=request.user) | Q(project__created_by=request.user),
+        deadline__date=selected_date
+    ).select_related('project', 'assigned_to')
+    
+    tasks_data = []
+    for task in tasks:
+        tasks_data.append({
+            'id': task.id,
+            'title': task.title,
+            'status': task.status,
+            'priority': task.priority,
+            'project_title': task.project.title,
+            'project_id': task.project.id,
+            'assigned_to': task.assigned_to.username if task.assigned_to else 'Unassigned',
+            'deadline': task.deadline.strftime('%Y-%m-%d %H:%M') if task.deadline else None,
+        })
+    
+    return JsonResponse({'tasks': tasks_data, 'date': date})
+
+
+@login_required
+def calendar_data(request):
+    """Return tasks as JSON for calendar"""
+    tasks = Task.objects.filter(
+        Q(project__members=request.user) | Q(project__created_by=request.user)
+    ).select_related('project', 'assigned_to')
+    
+    tasks_list = []
+    for task in tasks:
+        tasks_list.append({
+            'id': task.id,
+            'title': task.title,
+            'description': task.description,
+            'status': task.status,
+            'priority': task.priority,
+            'deadline': task.deadline.isoformat() if task.deadline else None,
+            'project': task.project.id,
+            'project_title': task.project.title,
+            'assigned_to': task.assigned_to.username if task.assigned_to else None,
+        })
+    
+    return JsonResponse(tasks_list, safe=False)
