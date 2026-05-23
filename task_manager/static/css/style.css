@@ -848,3 +848,42 @@ body {
     padding-left: 0.5rem;
     transition: all 0.2s ease;
 }
+
+/* Filter Form Styles */
+.filter-form {
+    background: var(--white);
+}
+
+.filter-form .form-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: var(--dark);
+}
+
+.filter-form .form-control,
+.filter-form .form-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--gray-light);
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.filter-form .form-control:focus,
+.filter-form .form-select:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* Active filter badge (optional) */
+.filter-badge {
+    display: inline-block;
+    background: var(--primary-light);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}

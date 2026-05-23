@@ -5,6 +5,7 @@ from django.db.models import Count, Q, Sum, FloatField
 from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator
 from django.utils import timezone
+from django.contrib.auth.models import User
 from .models import Project, Task, Comment
 from .forms import ProjectForm, TaskForm, CommentForm
 
@@ -33,17 +34,66 @@ def project_detail(request, pk):
         messages.error(request, 'You do not have access to this project.')
         return redirect('tasks:project_list')
     
+    # Get filter parameters from request
+    status_filter = request.GET.get('status', '')
+    priority_filter = request.GET.get('priority', '')
+    assigned_filter = request.GET.get('assigned', '')
+    deadline_from = request.GET.get('deadline_from', '')
+    deadline_to = request.GET.get('deadline_to', '')
+    
+    # Get assigned user name for display
+    assigned_username = ''
+    if assigned_filter and assigned_filter != 'all' and assigned_filter != 'unassigned':
+        try:
+            assigned_user = User.objects.get(id=assigned_filter)
+            assigned_username = assigned_user.username
+        except User.DoesNotExist:
+            assigned_username = ''
+
+    # Start with all tasks
     tasks_list = project.tasks.all()
     
-    # Pagination for tasks
-    paginator = Paginator(tasks_list, 5)  # 5 tasks per page
+    # Apply filters
+    if status_filter:
+        tasks_list = tasks_list.filter(status=status_filter)
+    
+    if priority_filter:
+        tasks_list = tasks_list.filter(priority=priority_filter)
+    
+    if assigned_filter and assigned_filter != 'all':
+        if assigned_filter == 'unassigned':
+            tasks_list = tasks_list.filter(assigned_to__isnull=True)
+        else:
+            tasks_list = tasks_list.filter(assigned_to__id=assigned_filter)
+    
+    if deadline_from:
+        tasks_list = tasks_list.filter(deadline__gte=deadline_from)
+    
+    if deadline_to:
+        tasks_list = tasks_list.filter(deadline__lte=deadline_to)
+    
+    # Pagination (5 tasks per page)
+    paginator = Paginator(tasks_list, 5)
     page_number = request.GET.get('page')
     tasks = paginator.get_page(page_number)
     
-    return render(request, 'tasks/project_detail.html', {
+    # Get list of users for assigned filter
+    users = project.members.all()
+    
+    context = {
         'project': project,
         'tasks': tasks,
-    })
+        'users': users,
+        # Preserve filter values in template
+        'status_filter': status_filter,
+        'priority_filter': priority_filter,
+        'assigned_filter': assigned_filter,
+        'assigned_username': assigned_username,
+        'deadline_from': deadline_from,
+        'deadline_to': deadline_to,
+    }
+    
+    return render(request, 'tasks/project_detail.html', context)
 
 @login_required
 def project_create(request):
@@ -181,10 +231,10 @@ def task_toggle_status(request, pk):
         task.status = new_status
         task.save()
         messages.success(request, f'Task status changed to {task.get_status_display()}')
-    else:
-        messages.error(request, 'Invalid status selected.')
     
-    return redirect('tasks:project_detail', pk=task.project.pk)
+    # Preserve filter parameters
+    next_url = request.META.get('HTTP_REFERER', f"/projects/{task.project.pk}/")
+    return redirect(next_url)
 
 # ==================== COMMENT VIEWS ====================
 
