@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ team.name }} - Team{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white;">
+                <h4><i class="{{ team.icon }}"></i> {{ team.name }}</h4>
+            </div>
+            <div class="card-body">
+                <p>{{ team.description|default:"No description provided." }}</p>
+                <hr>
+                <div class="text-muted">
+                    <i class="fas fa-calendar-alt"></i> Created: {{ team.created_at|date:"F j, Y" }}
+                </div>
+                <hr>
+                <div class="team-actions">
+                    {% if user in team.members.all %}
+                        <form method="post" action="{% url 'accounts:profile' user.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="team_id" value="{{ team.id }}">
+                            <button type="submit" name="remove_team" class="btn btn-danger w-100">
+                                <i class="fas fa-sign-out-alt"></i> Leave Team
+                            </button>
+                        </form>
+                    {% else %}
+                        <form method="post" action="{% url 'accounts:profile' user.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="team_id" value="{{ team.id }}">
+                            <button type="submit" name="add_team" class="btn btn-primary w-100">
+                                <i class="fas fa-sign-in-alt"></i> Join Team
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header" style="background: #10b981; color: white;">
+                <h4><i class="fas fa-users"></i> Team Members ({{ members.count }})</h4>
+            </div>
+            <div class="card-body">
+                {% if members %}
+                    <div class="row">
+                        {% for member in members %}
+                            <div class="col-md-6">
+                                <div class="member-card" style="display: flex; align-items: center; padding: 0.75rem; background: var(--light); border-radius: 10px; margin-bottom: 0.75rem;">
+                                    <div style="font-size: 2rem; margin-right: 1rem;">
+                                        <i class="fas fa-user-circle"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ member.get_full_name|default:member.username }}</strong>
+                                        <div class="text-muted small">@{{ member.username }}</div>
+                                        <div class="text-muted small">
+                                            <i class="fas fa-envelope"></i> {{ member.email|default:"No email" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center" style="padding: 2rem;">
+                        <i class="fas fa-users" style="font-size: 3rem; color: var(--gray);"></i>
+                        <p>No members yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header" style="background: #f59e0b; color: white;">
+                <h4><i class="fas fa-project-diagram"></i> Team Projects ({{ projects.count }})</h4>
+            </div>
+            <div class="card-body">
+                {% if projects %}
+                    {% for project in projects %}
+                        <div class="project-item" style="padding: 0.75rem; border-bottom: 1px solid var(--gray-light);">
+                            <a href="{% url 'tasks:project_detail' project.pk %}" style="font-weight: bold;">
+                                <i class="fas fa-folder"></i> {{ project.title }}
+                            </a>
+                            <div class="text-muted small">
+                                <i class="fas fa-users"></i> {{ project.members.count }} members
+                                <i class="fas fa-tasks ms-2"></i> {{ project.tasks.count }} tasks
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No projects associated with this team yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.member-card {
+    transition: all 0.2s ease;
+}
+.member-card:hover {
+    background: var(--gray-light);
+    transform: translateX(5px);
+}
+.ms-2 {
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock %}

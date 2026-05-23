@@ -35,4 +35,8 @@ urlpatterns = [
     path('calendar/', views.calendar_view, name='calendar'),
     path('calendar/tasks/<str:date>/', views.calendar_tasks, name='calendar_tasks'),
     path('calendar-data/', views.calendar_data, name='calendar_data'),
+
+    # Team URLs
+    path('teams/', views.team_list, name='team_list'),
+    path('teams/<int:pk>/', views.team_detail, name='team_detail'),
 ]

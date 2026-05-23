@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.db.models import Q, Count
 from tasks.models import Project, Task
 from .forms import UserProfileForm
+from tasks.models import Team
 
 # Signup view
 def signup_view(request):
@@ -41,30 +42,54 @@ def custom_login(request):
 def profile_view(request, user_id):
     user = get_object_or_404(User, id=user_id)
     
-    # Get user's projects (where user is member OR creator)
+    # Get user's projects
     user_projects = Project.objects.filter(
         Q(members=user) | Q(created_by=user)
     ).distinct()
     user_projects_count = user_projects.count()
     
-    # Get user's tasks (where user is assigned_to OR created_by)
+    # Get user's tasks
     user_tasks = Task.objects.filter(
         Q(assigned_to=user) | Q(created_by=user)
     ).distinct()
     user_total_tasks = user_tasks.count()
-    
-    # Completed vs Pending
     user_completed_tasks = user_tasks.filter(status=Task.Status.DONE).count()
     user_pending_tasks = user_total_tasks - user_completed_tasks
+    user_completion_rate = round((user_completed_tasks / user_total_tasks * 100), 1) if user_total_tasks > 0 else 0
     
-    # Completion rate percentage
-    if user_total_tasks > 0:
-        user_completion_rate = round((user_completed_tasks / user_total_tasks * 100), 1)
-    else:
-        user_completion_rate = 0
+    # Get all teams
+    all_teams = Team.objects.all()
     
-    # Recent tasks (last 5)
-    recent_tasks = user_tasks.order_by('-created_at')[:5]
+    # User's teams
+    user_teams = user.teams.all()
+    
+    # Team management (only for profile owner)
+    if request.user == user:
+        if request.method == 'POST':
+            if 'add_team' in request.POST:
+                team_id = request.POST.get('team_id')
+                team = get_object_or_404(Team, id=team_id)
+                if team not in user.teams.all():
+                    user.teams.add(team)
+                    
+                    # Add user to team projects
+                    team_members = team.members.all()
+                    projects = Project.objects.filter(
+                        Q(created_by__in=team_members) | Q(members__in=team_members)
+                    ).distinct()
+                    
+                    for project in projects:
+                        if user not in project.members.all() and user != project.created_by:
+                            project.members.add(user)
+                    
+                    messages.success(request, f'You joined the {team.name} team and added to its projects!')
+            
+            elif 'remove_team' in request.POST:
+                team_id = request.POST.get('team_id')
+                team = get_object_or_404(Team, id=team_id)
+                if team in user.teams.all():
+                    user.teams.remove(team)
+                    messages.success(request, f'You left the {team.name} team.')
     
     context = {
         'profile_user': user,
@@ -73,7 +98,8 @@ def profile_view(request, user_id):
         'user_completed_tasks': user_completed_tasks,
         'user_pending_tasks': user_pending_tasks,
         'user_completion_rate': user_completion_rate,
-        'recent_tasks': recent_tasks,
+        'user_teams': user_teams,
+        'all_teams': all_teams,
     }
     
     return render(request, 'accounts/profile.html', context)

@@ -35,6 +35,26 @@
                 {% endif %}
             </div>
         </div>
+        
+        <!-- Teams Card (for viewing others' teams) -->
+        <div class="card mt-3">
+            <div class="card-header" style="background: #10b981; color: white;">
+                <h4><i class="fas fa-users"></i> Teams</h4>
+            </div>
+            <div class="card-body">
+                {% if user_teams %}
+                    <div class="teams-list">
+                        {% for team in user_teams %}
+                            <div class="team-badge" style="display: inline-block; background: var(--light); padding: 0.5rem; border-radius: 8px; margin: 0.25rem;">
+                                <i class="{{ team.icon }}"></i> {{ team.name }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Not a member of any team yet</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
     
     <!-- Statistics Cards -->
@@ -46,7 +66,6 @@
                         <i class="fas fa-project-diagram" style="font-size: 2.5rem; color: #6366f1;"></i>
                         <div class="stat-number">{{ user_projects_count }}</div>
                         <p class="text-muted">Projects</p>
-                        <small class="text-muted">Created or member of</small>
                     </div>
                 </div>
             </div>
@@ -56,7 +75,6 @@
                         <i class="fas fa-tasks" style="font-size: 2.5rem; color: #10b981;"></i>
                         <div class="stat-number">{{ user_total_tasks }}</div>
                         <p class="text-muted">Total Tasks</p>
-                        <small class="text-muted">Assigned or created</small>
                     </div>
                 </div>
             </div>
@@ -69,7 +87,6 @@
                         <i class="fas fa-check-circle" style="font-size: 2.5rem; color: #10b981;"></i>
                         <div class="stat-number">{{ user_completed_tasks }}</div>
                         <p class="text-muted">Completed Tasks</p>
-                        <small class="text-muted">✅ Done</small>
                     </div>
                 </div>
             </div>
@@ -79,7 +96,6 @@
                         <i class="fas fa-clock" style="font-size: 2.5rem; color: #f59e0b;"></i>
                         <div class="stat-number">{{ user_pending_tasks }}</div>
                         <p class="text-muted">Pending Tasks</p>
-                        <small class="text-muted">⏳ TODO + In Progress</small>
                     </div>
                 </div>
             </div>
@@ -94,43 +110,70 @@
                     <div class="card-body text-center">
                         <div class="stat-number">{{ user_completion_rate }}%</div>
                         <div class="progress mt-2">
-                            <div class="progress-bar" style="width: {{ user_completion_rate }}%; background: #10b981; height: 8px; border-radius: 4px;"></div>
+                            <div class="progress-bar" style="width: {{ user_completion_rate }}%; background: #10b981;"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="row mt-3">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header" style="background: #f59e0b; color: white;">
-                        <h4><i class="fas fa-history"></i> Recent Tasks</h4>
-                    </div>
-                    <div class="card-body">
-                        {% if recent_tasks %}
-                            {% for task in recent_tasks %}
-                                <div class="recent-task-item" style="padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <i class="fas fa-tasks" style="color: #6366f1;"></i>
-                                            <strong>{{ task.title }}</strong>
-                                            <span class="badge status-{{ task.status|lower }}">{{ task.get_status_display }}</span>
-                                        </div>
-                                        <div class="text-muted small">{{ task.created_at|date:"Y-m-d" }}</div>
-                                    </div>
-                                    <div class="text-muted small mt-1">
-                                        Project: {{ task.project.title }}
-                                    </div>
+        <!-- Team Management (only for own profile) -->
+        {% if user.id == profile_user.id %}
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header" style="background: #f59e0b; color: white;">
+                            <h4><i class="fas fa-user-plus"></i> Manage Your Teams</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-users"></i> Your Current Teams</h5>
+                                    {% if user_teams %}
+                                        <ul class="list-group">
+                                            {% for team in user_teams %}
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <span><i class="{{ team.icon }}"></i> {{ team.name }}</span>
+                                                    <form method="post" style="display: inline;">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="team_id" value="{{ team.id }}">
+                                                        <button type="submit" name="remove_team" class="btn btn-danger btn-sm">
+                                                            <i class="fas fa-sign-out-alt"></i> Leave
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="text-muted">You haven't joined any teams yet.</p>
+                                    {% endif %}
                                 </div>
-                            {% endfor %}
-                        {% else %}
-                            <p class="text-muted text-center">No tasks yet</p>
-                        {% endif %}
+                                
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-plus-circle"></i> Available Teams</h5>
+                                    <ul class="list-group">
+                                        {% for team in all_teams %}
+                                            {% if team not in user_teams %}
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <span><i class="{{ team.icon }}"></i> {{ team.name }}</span>
+                                                    <form method="post" style="display: inline;">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="team_id" value="{{ team.id }}">
+                                                        <button type="submit" name="add_team" class="btn btn-success btn-sm">
+                                                            <i class="fas fa-sign-in-alt"></i> Join
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -151,16 +194,19 @@
     color: var(--primary);
 }
 .progress {
+    height: 8px;
     background: #e5e7eb;
     border-radius: 10px;
     overflow: hidden;
 }
+.team-badge {
+    transition: all 0.2s ease;
+}
+.team-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
 .mt-2 { margin-top: 0.5rem; }
 .mt-3 { margin-top: 1rem; }
-.d-flex { display: flex; }
-.justify-content-between { justify-content: space-between; }
-.align-items-center { align-items: center; }
-.text-muted { color: var(--gray); }
-.small { font-size: 0.75rem; }
 </style>
 {% endblock %}

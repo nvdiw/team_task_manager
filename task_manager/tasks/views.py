@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Count, Q, Sum, FloatField
+from django.db.models import Count, Q, Sum, FloatField, Case, When, Value, IntegerField
 from django.db.models.functions import Coalesce
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -11,22 +11,45 @@ from datetime import datetime
 from django.http import JsonResponse
 from .models import Project, Task, Comment, TaskAttachment
 from .forms import ProjectForm, TaskForm, CommentForm, TaskAttachmentForm
-
-
+from tasks.models import Team
 # ==================== PROJECT VIEWS ====================
 
 @login_required
+@login_required
 def project_list(request):
-    # Show projects where user is member or creator
+    # Get team filter from request
+    team_filter = request.GET.get('team', '')
+    
+    # Base queryset
     projects_list = Project.objects.filter(
         Q(members=request.user) | Q(created_by=request.user)
     ).distinct()
+    
+    # Filter by team (if user is in that team)
+    if team_filter:
+        try:
+            team = Team.objects.get(id=team_filter)
+            if request.user in team.members.all():
+                # Show projects where creator or members are in this team
+                projects_list = projects_list.filter(
+                    Q(created_by__in=team.members.all()) | 
+                    Q(members__in=team.members.all())
+                ).distinct()
+        except Team.DoesNotExist:
+            pass
     
     paginator = Paginator(projects_list, 5)
     page_number = request.GET.get('page')
     projects = paginator.get_page(page_number)
     
-    return render(request, 'tasks/project_list.html', {'projects': projects})
+    # Get user's teams for filter dropdown
+    user_teams = request.user.teams.all()
+    
+    return render(request, 'tasks/project_list.html', {
+        'projects': projects,
+        'user_teams': user_teams,
+        'team_filter': team_filter,
+    })
 
 @login_required
 def project_detail(request, pk):
@@ -110,11 +133,36 @@ def project_create(request):
             project = form.save(commit=False)
             project.created_by = request.user
             project.save()
-            form.save_m2m()  # Save many-to-many members
+            form.save_m2m()
             messages.success(request, 'Project created successfully!')
             return redirect('tasks:project_detail', pk=project.pk)
     else:
         form = ProjectForm()
+        
+        # Get user's teams
+        user_teams = request.user.teams.all()
+        team_members = []
+        
+        # Collect all members from user's teams
+        for team in user_teams:
+            for member in team.members.all():
+                if member not in team_members:
+                    team_members.append(member)
+        
+        # Get all users (excluding team members)
+        other_users = User.objects.exclude(id__in=[u.id for u in team_members]).exclude(id=request.user.id)
+        
+        # Order: team members first, then other users, current user last?
+        ordered_members = team_members + list(other_users)
+        
+        # Add current user at the beginning (optional)
+        if request.user not in ordered_members:
+            ordered_members.insert(0, request.user)
+        
+        # Create ordering for queryset
+        preserved = Case(*[When(pk=member.pk, then=Value(index)) for index, member in enumerate(ordered_members)], default=Value(len(ordered_members)), output_field=IntegerField())
+        
+        form.fields['members'].queryset = User.objects.all().order_by(preserved)
     
     return render(request, 'tasks/project_form.html', {'form': form, 'title': 'Create Project'})
 
@@ -122,7 +170,6 @@ def project_create(request):
 def project_edit(request, pk):
     project = get_object_or_404(Project, pk=pk)
     
-    # Check if user is creator
     if request.user != project.created_by:
         messages.error(request, 'Only the project creator can edit this project.')
         return redirect('tasks:project_detail', pk=pk)
@@ -135,6 +182,31 @@ def project_edit(request, pk):
             return redirect('tasks:project_detail', pk=project.pk)
     else:
         form = ProjectForm(instance=project)
+        
+        # Get user's teams
+        user_teams = request.user.teams.all()
+        team_members = []
+        
+        # Collect all members from user's teams
+        for team in user_teams:
+            for member in team.members.all():
+                if member not in team_members:
+                    team_members.append(member)
+        
+        # Get other users
+        other_users = User.objects.exclude(id__in=[u.id for u in team_members]).exclude(id=request.user.id)
+        
+        # Order: team members first, then other users
+        ordered_members = team_members + list(other_users)
+        
+        # Add current user at the beginning
+        if request.user not in ordered_members:
+            ordered_members.insert(0, request.user)
+        
+        # Create ordering for queryset
+        preserved = Case(*[When(pk=member.pk, then=Value(index)) for index, member in enumerate(ordered_members)], default=Value(len(ordered_members)), output_field=IntegerField())
+        
+        form.fields['members'].queryset = User.objects.all().order_by(preserved)
     
     return render(request, 'tasks/project_form.html', {'form': form, 'title': 'Edit Project'})
 
@@ -174,7 +246,28 @@ def task_create(request, project_id):
             return redirect('tasks:project_detail', pk=project.pk)
     else:
         form = TaskForm()
-        form.fields['assigned_to'].queryset = project.members.all()
+        
+        # Get user's teams
+        user_teams = request.user.teams.all()
+        team_members = []
+        
+        # Collect all members from user's teams
+        for team in user_teams:
+            for member in team.members.all():
+                if member not in team_members and member in project.members.all():
+                    team_members.append(member)
+        
+        # Get other project members (not in user's teams)
+        other_members = [m for m in project.members.all() if m not in team_members]
+        
+        # Combine: team members first, then other members
+        ordered_members = team_members + other_members
+        
+        # Create a new queryset with ordered members
+        from django.db.models import Case, When, Value, IntegerField
+        preserved = Case(*[When(pk=member.pk, then=Value(index)) for index, member in enumerate(ordered_members)], default=Value(len(ordered_members)), output_field=IntegerField())
+        
+        form.fields['assigned_to'].queryset = project.members.all().order_by(preserved)
     
     return render(request, 'tasks/task_form.html', {
         'form': form,
@@ -198,7 +291,28 @@ def task_edit(request, pk):
             return redirect('tasks:project_detail', pk=task.project.pk)
     else:
         form = TaskForm(instance=task)
-        form.fields['assigned_to'].queryset = task.project.members.all()
+        
+        # Get user's teams
+        user_teams = request.user.teams.all()
+        team_members = []
+        
+        # Collect all members from user's teams
+        for team in user_teams:
+            for member in team.members.all():
+                if member not in team_members and member in task.project.members.all():
+                    team_members.append(member)
+        
+        # Get other project members (not in user's teams)
+        other_members = [m for m in task.project.members.all() if m not in team_members]
+        
+        # Combine: team members first, then other members
+        ordered_members = team_members + other_members
+        
+        # Create a new queryset with ordered members
+        from django.db.models import Case, When, Value, IntegerField
+        preserved = Case(*[When(pk=member.pk, then=Value(index)) for index, member in enumerate(ordered_members)], default=Value(len(ordered_members)), output_field=IntegerField())
+        
+        form.fields['assigned_to'].queryset = task.project.members.all().order_by(preserved)
     
     return render(request, 'tasks/task_form.html', {
         'form': form,
@@ -518,3 +632,39 @@ def calendar_data(request):
         })
     
     return JsonResponse(tasks_list, safe=False)
+
+
+@login_required
+def team_list(request):
+    """Show all teams"""
+    teams = Team.objects.all()
+    user_teams = request.user.teams.all()
+    
+    return render(request, 'tasks/team_list.html', {
+        'teams': teams,
+        'user_teams': user_teams,
+    })
+
+
+@login_required
+def team_detail(request, pk):
+    """Show team details and its members"""
+    team = get_object_or_404(Team, pk=pk)
+    
+    # Check if user is a member of this team (optional - for privacy)
+    # if request.user not in team.members.all():
+    #     messages.error(request, 'You are not a member of this team.')
+    #     return redirect('tasks:team_list')
+    
+    members = team.members.all()
+    
+    # Get projects related to this team
+    projects = Project.objects.filter(
+        Q(created_by__in=members) | Q(members__in=members)
+    ).distinct()
+    
+    return render(request, 'tasks/team_detail.html', {
+        'team': team,
+        'members': members,
+        'projects': projects,
+    })

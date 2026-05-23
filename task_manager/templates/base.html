@@ -23,6 +23,10 @@
             </a>
             <div class="navbar-menu">
                 {% if user.is_authenticated %}
+                    <a class="nav-link" href="{% url 'tasks:team_list' %}">
+                        <i class="fas fa-building"></i>
+                        Teams
+                    </a>
                     <a class="nav-link" href="{% url 'tasks:calendar' %}">
                         <i class="fas fa-calendar-alt"></i>
                         Calendar

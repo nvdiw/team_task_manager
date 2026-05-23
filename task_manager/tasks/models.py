@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
+from django.db.models import Q
 
 # Project Model
 class Project(models.Model):
@@ -172,3 +175,20 @@ class TaskAttachment(models.Model):
     
     class Meta:
         ordering = ['-uploaded_at']
+
+
+class Team(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    members = models.ManyToManyField(User, related_name='teams', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    icon = models.CharField(max_length=50, default='fas fa-users')
+    
+    def __str__(self):
+        return self.name
+    
+    def member_count(self):
+        return self.members.count()
+    
+    class Meta:
+        ordering = ['name']
