@@ -213,6 +213,7 @@ body {
 
 .btn-danger:hover {
     background: var(--danger-dark);
+    transform: translateY(-2px);
 }
 
 .btn-secondary {
@@ -222,6 +223,7 @@ body {
 
 .btn-secondary:hover {
     background: var(--dark);
+    transform: translateY(-2px);
 }
 
 .btn-warning {
@@ -231,6 +233,7 @@ body {
 
 .btn-warning:hover {
     background: #d97706;
+    transform: translateY(-2px);
 }
 
 .w-100 {
@@ -921,4 +924,15 @@ body {
 }
 .fc .fc-daygrid-day.fc-day-today {
     background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+.btn-graph {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    border: none;
+    color: white;
+}
+
+.btn-graph:hover {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    transform: translateY(-2px);
 }

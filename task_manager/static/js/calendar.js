@@ -65,7 +65,7 @@ class ModernCalendar {
         let html = `
             <div class="calendar-container">
                 <div class="calendar-header">
-                    <button class="calendar-nav-btn" onclick="window.calendar.prevMonth()">
+                    <button class="calendar-nav-btn" onclick="window.calendar.previousMonth()">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <h2 class="calendar-title">${monthNames[month]} ${year}</h2>

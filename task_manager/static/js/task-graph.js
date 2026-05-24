@@ -131,25 +131,32 @@ const TaskGraph = (function() {
 
     function drawGrid() {
         if (!ctx) return;
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        const step = 50;
+        const offsetX = config.panX % step;
+        const offsetY = config.panY % step;
+        
         ctx.save();
         ctx.scale(config.zoom, config.zoom);
-        ctx.translate(config.panX, config.panY);
-        const w = canvas.width / config.zoom;
-        const h = canvas.height / config.zoom;
-        const step = 50;
+        
         ctx.beginPath();
         ctx.strokeStyle = '#e2e8f0';
         ctx.lineWidth = 0.5;
-        for (let x = -config.panX % step; x < w; x += step) {
-            ctx.moveTo(x, -config.panY);
-            ctx.lineTo(x, h - config.panY);
+        
+        for (let x = offsetX; x < w / config.zoom; x += step) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h / config.zoom);
             ctx.stroke();
         }
-        for (let y = -config.panY % step; y < h; y += step) {
-            ctx.moveTo(-config.panX, y);
-            ctx.lineTo(w - config.panX, y);
+        
+        for (let y = offsetY; y < h / config.zoom; y += step) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(w / config.zoom, y);
             ctx.stroke();
         }
+        
         ctx.restore();
     }
 
@@ -215,13 +222,22 @@ const TaskGraph = (function() {
         ctx.restore();
     }
 
-    function render() {
-        if (!canvas || !ctx) return;
-        canvas.width = canvas.width; // clear
-        drawGrid();
-        drawEdges();
-        drawNodes();
-    }
+function render() {
+    if (!canvas || !ctx) return;
+    
+    canvas.width = canvas.width;
+    
+    drawGrid();
+    
+    ctx.save();
+    ctx.scale(config.zoom, config.zoom);
+    ctx.translate(config.panX, config.panY);
+    
+    drawEdges();
+    drawNodes();
+    
+    ctx.restore();
+}
 
     // ---------- Node positions (circular layout with saved positions) ----------
     function calculateNodePositions(savedPositions = {}) {
@@ -467,6 +483,19 @@ const TaskGraph = (function() {
         if (!canvas) return;
         canvas.addEventListener('mousedown', onCanvasMouseDown);
         canvas.addEventListener('contextmenu', onCanvasContextMenu);
+        canvas.addEventListener('dblclick', (e) => {
+            const world = screenToWorld(e.clientX, e.clientY);
+            for (const node of config.nodePositions) {
+                const left = node.x - node.width/2;
+                const right = node.x + node.width/2;
+                const top = node.y - node.height/2;
+                const bottom = node.y + node.height/2;
+                if (world.x >= left && world.x <= right && world.y >= top && world.y <= bottom) {
+                    window.location.href = `${config.projectUrl}#task-${node.id}`;
+                    break;
+                }
+            }
+        });
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             const delta = e.deltaY > 0 ? 0.9 : 1.1;
