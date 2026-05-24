@@ -42,4 +42,13 @@ urlpatterns = [
 
     # My Tasks
     path('my-tasks/', views.my_tasks, name='my_tasks'),
+
+    # Task Graph
+    path('task-graph/<int:project_id>/', views.task_graph, name='task_graph'),
+    path('api/task-graph/<int:project_id>/', views.task_graph_data, name='task_graph_data'),
+    
+    # Dependency API
+    path('api/tasks/dependency/create/', views.create_dependency, name='create_dependency'),
+    path('api/tasks/save-node-position/', views.save_node_position, name='save_node_position'),
+    path('api/tasks/dependency/delete/', views.delete_dependency, name='delete_dependency'),
 ]

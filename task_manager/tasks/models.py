@@ -24,6 +24,7 @@ class Project(models.Model):
     team = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Last Updated")
+    graph_node_positions = models.JSONField(default=dict, blank=True)
     
     def __str__(self):
         return self.title
@@ -95,7 +96,8 @@ class Task(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Last Updated")
     points_awarded = models.BooleanField(default=False)
-    
+    depends_on = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='blocked_tasks')
+
     def __str__(self):
         return self.title
     

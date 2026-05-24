@@ -1,0 +1,283 @@
+/* ========================================
+   Task Graph - Modern CSS
+   ======================================== */
+
+/* Container */
+.graph-container {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Header */
+.graph-header {
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.graph-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+    animation: pulse 8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+.graph-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+    z-index: 1;
+}
+
+.graph-title i {
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, #a5b4fc, #818cf8);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.graph-subtitle {
+    font-size: 0.875rem;
+    opacity: 0.75;
+    margin-top: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+/* Stats Bar */
+.graph-stats {
+    padding: 0.75rem 2rem;
+    background: #f8fafc;
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.stat-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1e293b;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.stat-card i {
+    color: #6366f1;
+    font-size: 1rem;
+}
+
+.stat-number {
+    font-weight: 700;
+    color: #6366f1;
+    font-size: 1.1rem;
+    margin-left: 0.25rem;
+}
+
+/* Controls */
+.graph-controls {
+    padding: 1rem 2rem;
+    background: #ffffff;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.graph-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    background: #f8fafc;
+    color: #1e293b;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.graph-btn i {
+    font-size: 0.85rem;
+}
+
+.graph-btn:hover {
+    background: #6366f1;
+    color: white;
+    border-color: #6366f1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.graph-btn-primary {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    border: none;
+}
+
+.graph-btn-primary:hover {
+    background: linear-gradient(135deg, #4f46e5, #4338ca);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+/* Canvas Container */
+#graphContainer {
+    min-height: 550px;
+    background: #ffffff;
+    position: relative;
+}
+
+/* Legend */
+.graph-legend {
+    padding: 0.75rem 2rem;
+    background: #f8fafc;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: #475569;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.legend-item:hover {
+    background: #eef2ff;
+    transform: translateY(-1px);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+}
+
+.legend-color.todo { background: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
+.legend-color.progress { background: #f59e0b; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2); }
+.legend-color.done { background: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+
+/* Footer */
+.graph-footer {
+    padding: 0.75rem 2rem;
+    background: #f8fafc;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .graph-header {
+        padding: 1rem 1.25rem;
+    }
+    
+    .graph-title {
+        font-size: 1.2rem;
+    }
+    
+    .graph-stats, .graph-controls, .graph-legend, .graph-footer {
+        padding: 0.75rem 1rem;
+    }
+    
+    .stat-card {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+    }
+    
+    .graph-btn {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.7rem;
+    }
+    
+    .legend-item {
+        font-size: 0.65rem;
+    }
+}
+
+/* Loading Animation */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Tooltip for canvas (will be added by JS) */
+.graph-tooltip {
+    position: fixed;
+    background: #1e293b;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    white-space: nowrap;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 import json
 from datetime import datetime
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from .models import Project, Task, Comment, TaskAttachment, UserProfile, PointTransaction
 from .forms import ProjectForm, TaskForm, CommentForm, TaskAttachmentForm
 from tasks.models import Team
@@ -256,16 +257,18 @@ def task_create(request, project_id):
         return redirect('tasks:project_detail', pk=project.pk)
     
     if request.method == 'POST':
-        form = TaskForm(request.POST)
+        form = TaskForm(request.POST, project_id=project_id)
         if form.is_valid():
             task = form.save(commit=False)
             task.project = project
             task.created_by = request.user
             task.save()
+            form.save_m2m()
             messages.success(request, 'Task created successfully!')
             return redirect('tasks:project_detail', pk=project.pk)
     else:
-        form = TaskForm()
+        form = TaskForm(project_id=project_id)
+        form.fields['assigned_to'].queryset = project.members.all()
         
         # Get user's teams
         user_teams = request.user.teams.all()
@@ -304,13 +307,14 @@ def task_edit(request, pk):
         return redirect('tasks:project_detail', pk=task.project.pk)
     
     if request.method == 'POST':
-        form = TaskForm(request.POST, instance=task)
+        form = TaskForm(request.POST, instance=task, project_id=task.project.id)
         if form.is_valid():
             form.save()
             messages.success(request, 'Task updated successfully!')
             return redirect('tasks:project_detail', pk=task.project.pk)
     else:
-        form = TaskForm(instance=task)
+        form = TaskForm(instance=task, project_id=task.project.id)
+        form.fields['assigned_to'].queryset = task.project.members.all()
         
         # Get user's teams
         user_teams = request.user.teams.all()
@@ -759,3 +763,138 @@ def my_tasks(request):
     }
     
     return render(request, 'tasks/my_tasks.html', context)
+
+@login_required
+def task_graph(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    
+    if request.user not in project.members.all() and request.user != project.created_by:
+        messages.error(request, 'You do not have access to this project.')
+        return redirect('tasks:project_list')
+    
+    return render(request, 'tasks/task_graph.html', {'project': project})
+
+
+@login_required
+def task_graph_data(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    
+    if request.user not in project.members.all() and request.user != project.created_by:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    tasks = project.tasks.all()
+    
+    nodes = []
+    edges = []
+    
+    for task in tasks:
+        nodes.append({
+            'data': {
+                'id': str(task.id),
+                'label': task.title[:40] + ('...' if len(task.title) > 40 else ''),
+                'status': task.status,
+                'priority': task.priority,
+            }
+        })
+        
+        # Add dependencies if they exist
+        if hasattr(task, 'depends_on'):
+            for dep in task.depends_on.all():
+                edges.append({
+                    'data': {
+                        'id': f'{dep.id}-{task.id}',
+                        'source': str(dep.id),
+                        'target': str(task.id),
+                    }
+                })
+    
+    return JsonResponse({'nodes': nodes, 'edges': edges})
+
+
+@login_required
+@csrf_exempt
+def create_dependency(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        source_id = data.get('source_id')
+        target_id = data.get('target_id')
+        
+        if not source_id or not target_id:
+            return JsonResponse({'success': False, 'error': 'Missing ids'})
+        
+        source_task = Task.objects.get(id=source_id)
+        target_task = Task.objects.get(id=target_id)
+        
+        # Check permission
+        project = source_task.project
+        if request.user not in project.members.all() and request.user != project.created_by:
+            return JsonResponse({'success': False, 'error': 'Permission denied'})
+        
+        # Add dependency: target depends on source
+        target_task.depends_on.add(source_task)
+        
+        return JsonResponse({'success': True})
+        
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+    
+@login_required
+@csrf_exempt
+def delete_dependency(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    data = json.loads(request.body)
+    source_id = data.get('source_id')
+    target_id = data.get('target_id')
+    try:
+        source_task = Task.objects.get(id=source_id)
+        target_task = Task.objects.get(id=target_id)
+        project = source_task.project
+        if request.user not in project.members.all() and request.user != project.created_by:
+            return JsonResponse({'success': False, 'error': 'Permission denied'})
+        target_task.depends_on.remove(source_task)
+        return JsonResponse({'success': True})
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+    
+
+@login_required
+def task_graph_data(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+
+    tasks = project.tasks.all()
+    nodes = [{'data': {'id': str(t.id), 'label': t.title[:40], 'status': t.status, 'priority': t.priority, 'description': t.description or ''}} for t in tasks]
+    edges = []
+    for task in tasks:
+        for dep in task.depends_on.all():
+            edges.append({'data': {'id': f'{dep.id}-{task.id}', 'source': str(dep.id), 'target': str(task.id)}})
+    
+
+    saved_positions = project.graph_node_positions or {}
+    return JsonResponse({'nodes': nodes, 'edges': edges, 'saved_positions': saved_positions})
+
+@login_required
+@csrf_exempt
+def save_node_position(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    data = json.loads(request.body)
+    task_id = data.get('task_id')
+    x = data.get('x')
+    y = data.get('y')
+    task = Task.objects.get(id=task_id)
+    project = task.project
+    if request.user not in project.members.all() and request.user != project.created_by:
+        return JsonResponse({'success': False, 'error': 'Permission denied'})
+    positions = project.graph_node_positions or {}
+    positions[str(task_id)] = {'x': x, 'y': y}
+    project.graph_node_positions = positions
+    project.save(update_fields=['graph_node_positions'])
+    return JsonResponse({'success': True})

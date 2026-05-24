@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Task Graph - {{ project.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/task-graph.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="graph-container">
+    <div class="graph-header">
+        <div class="graph-title">
+            <i class="fas fa-project-diagram"></i>
+            Task Dependency Graph
+        </div>
+        <div class="graph-subtitle">
+            {{ project.title }} - Visualize task relationships and dependencies
+        </div>
+    </div>
+    
+    <div class="graph-stats">
+        <div class="stat-card">
+            <i class="fas fa-tasks"></i>
+            <span>Total Tasks</span>
+            <span class="stat-number" id="totalTasks">0</span>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-code-branch"></i>
+            <span>Dependencies</span>
+            <span class="stat-number" id="totalDeps">0</span>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-link"></i>
+            <span>Connected Tasks</span>
+            <span class="stat-number" id="connectedTasks">0</span>
+        </div>
+    </div>
+    
+    <div class="graph-controls">
+        <button class="graph-btn" id="btn-zoom-in"><i class="fas fa-search-plus"></i> Zoom In</button>
+        <button class="graph-btn" id="btn-zoom-out"><i class="fas fa-search-minus"></i> Zoom Out</button>
+        <button class="graph-btn graph-btn-primary" id="btn-fit"><i class="fas fa-expand"></i> Fit View</button>
+        <a href="{% url 'tasks:project_detail' project.pk %}" class="graph-btn"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+    
+    <div id="graphContainer"></div>
+    
+    <div class="graph-legend">
+        <div class="legend-item">
+            <span class="legend-color todo"></span>
+            <span>TODO</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color progress"></span>
+            <span>In Progress</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color done"></span>
+            <span>Done</span>
+        </div>
+        <div class="legend-item">
+            <i class="fas fa-arrow-right" style="color: #94a3b8;"></i>
+            <span>Dependency (A → B means A must be completed before B)</span>
+        </div>
+        <div class="legend-item">
+            <i class="fas fa-mouse-pointer"></i>
+            <span>Click any task to edit</span>
+        </div>
+        <div class="legend-item">
+            <i class="fas fa-arrows-alt"></i>
+            <span>Drag to pan | Scroll to zoom</span>
+        </div>
+    </div>
+    
+    <div class="graph-footer">
+        <i class="fas fa-info-circle"></i> 
+        Nodes are colored by status. Edge thickness shows dependency strength.
+        <i class="fas fa-chart-line" style="margin-left: 1rem;"></i>
+        Task size indicates number of incoming dependencies.
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/task-graph.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        TaskGraph.init(
+            "{{ project.pk }}",
+            "{% url 'tasks:task_graph_data' project.pk %}",
+            "{% url 'tasks:project_detail' project.pk %}"
+        );
+    });
+</script>
+{% endblock %}

@@ -11,7 +11,9 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/calendar.css' %}">
+    
+    <!-- Extra CSS for specific pages -->
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Navigation -->
