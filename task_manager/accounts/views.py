@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.db.models import Q, Count
 from tasks.models import Project, Task
 from .forms import UserProfileForm
-from tasks.models import Team
+from tasks.models import Project, Task, Team, UserProfile
 
 # Signup view
 def signup_view(request):
@@ -57,6 +57,14 @@ def profile_view(request, user_id):
     user_pending_tasks = user_total_tasks - user_completed_tasks
     user_completion_rate = round((user_completed_tasks / user_total_tasks * 100), 1) if user_total_tasks > 0 else 0
     
+    # Score & Level
+    user_profile = user.profile
+    user_points = user_profile.points
+    user_level = user_profile.level()
+    user_tasks_completed = user_profile.total_tasks_completed
+    
+    user_rank = UserProfile.objects.filter(points__gt=user_points).count() + 1
+    
     # Get all teams
     all_teams = Team.objects.all()
     
@@ -100,6 +108,10 @@ def profile_view(request, user_id):
         'user_completion_rate': user_completion_rate,
         'user_teams': user_teams,
         'all_teams': all_teams,
+        'user_points': user_points,
+        'user_level': user_level,
+        'user_tasks_completed': user_tasks_completed,
+        'user_rank': user_rank,
     }
     
     return render(request, 'accounts/profile.html', context)

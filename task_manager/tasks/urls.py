@@ -39,4 +39,7 @@ urlpatterns = [
     # Team URLs
     path('teams/', views.team_list, name='team_list'),
     path('teams/<int:pk>/', views.team_detail, name='team_detail'),
+
+    # My Tasks
+    path('my-tasks/', views.my_tasks, name='my_tasks'),
 ]

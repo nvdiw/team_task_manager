@@ -21,6 +21,7 @@ class Project(models.Model):
         blank=True,
         verbose_name="Team Members"
     )
+    team = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Last Updated")
     
@@ -93,6 +94,7 @@ class Task(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Last Updated")
+    points_awarded = models.BooleanField(default=False)
     
     def __str__(self):
         return self.title
@@ -192,3 +194,30 @@ class Team(models.Model):
     
     class Meta:
         ordering = ['name']
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    points = models.IntegerField(default=0)
+    total_tasks_completed = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.points} pts"
+
+    def level(self):
+        # every 100 scores = 1 Level
+        return (self.points // 100) + 1
+
+    class Meta:
+        ordering = ['-points']
+
+
+class PointTransaction(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='point_transactions')
+    task = models.ForeignKey('Task', on_delete=models.CASCADE)
+    points_earned = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    description = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.user.username} +{self.points_earned} for task {self.task.id}"

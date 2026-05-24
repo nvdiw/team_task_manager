@@ -29,11 +29,31 @@
         <hr>
         <div class="text-muted">
             <i class="fas fa-users"></i> Members: 
-            {% for member in project.members.all %}
-                <span class="badge">{{ member.username }}</span>
-            {% empty %}
-                No members yet
-            {% endfor %}
+            
+            {% if project.team %}
+                <div class="team-info" style="margin-top: 5px;">
+                    <span class="badge" style="background: #8b5cf6; color: white;">
+                        <i class="{{ project.team.icon }}"></i> Team: {{ project.team.name }}
+                    </span>
+                    <span class="badge bg-info">Team Members:</span>
+                    {% for member in project.team.members.all %}
+                        <span class="badge" style="background: #e5e7eb; color: #1f2937;">
+                            <i class="fas fa-user"></i> {{ member.username }}
+                        </span>
+                    {% endfor %}
+                    <small class="text-muted">(members from team - cannot edit individually)</small>
+                </div>
+            {% else %}
+                <div>
+                    {% for member in project.members.all %}
+                        <span class="badge" style="background: #e5e7eb; color: #1f2937;">
+                            <i class="fas fa-user"></i> {{ member.username }}
+                        </span>
+                    {% empty %}
+                        <span class="text-muted">No members yet</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -147,7 +167,7 @@
     <div class="card-body">
         {% if tasks %}
             {% for task in tasks %}
-                <div class="task-item priority-{{ task.priority|lower }}">
+                <div id="task-{{ task.pk }}" class="task-item priority-{{ task.priority|lower }}">
                     <div style="flex: 1;">
                         <div>
                             <strong>

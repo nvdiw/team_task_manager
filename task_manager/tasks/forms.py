@@ -5,10 +5,11 @@ from .models import Project, Task, Comment, TaskAttachment
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['title', 'description', 'members']
+        fields = ['title', 'description', 'team', 'members']  # اضافه کردن team
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter project title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Project description'}),
+            'team': forms.Select(attrs={'class': 'form-control'}),  # اضافه کن
             'members': forms.SelectMultiple(attrs={'class': 'form-control'}),
         }
     

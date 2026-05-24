@@ -84,8 +84,19 @@
                             </p>
                             <p>{{ project.description|truncatewords:20|default:"No description provided." }}</p>
                             <div class="text-muted">
-                                <i class="fas fa-users"></i> {{ project.members.count }} members
+                                <!-- Member count - with team info if available -->
+                                <i class="fas fa-users"></i> 
+                                {% if project.team %}
+                                    <span title="Team: {{ project.team.name }}">
+                                        <i class="{{ project.team.icon }}"></i> {{ project.team.members.count }} members
+                                    </span>
+                                    <small class="text-muted">(Team: {{ project.team.name }})</small>
+                                {% else %}
+                                    {{ project.members.count }} members
+                                {% endif %}
+                                
                                 <i class="fas fa-tasks ms-3"></i> {{ project.tasks.count }} tasks
+                                
                                 <span class="badge {% if project.incomplete_tasks_count > 0 %}bg-warning{% else %}bg-success{% endif %}" style="margin-left: 0.5rem;">
                                     <i class="fas fa-clock"></i> {{ project.incomplete_tasks_count }} pending
                                 </span>

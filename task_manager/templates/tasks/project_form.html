@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ title }} - Task Manager{% endblock %}
 
@@ -10,30 +11,42 @@
                 <h4><i class="fas fa-{% if 'Create' in title %}plus{% else %}edit{% endif %}"></i> {{ title }}</h4>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" id="projectForm">
                     {% csrf_token %}
                     
                     {% if form.errors %}
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-circle"></i>
-                            Please correct errors below.
+                            Please correct the errors below.
                         </div>
                     {% endif %}
                     
+                    <!-- Title Field -->
                     <div class="form-group">
                         <label class="form-label"><i class="fas fa-heading"></i> Title</label>
                         {{ form.title }}
                     </div>
                     
+                    <!-- Description Field -->
                     <div class="form-group">
                         <label class="form-label"><i class="fas fa-align-left"></i> Description</label>
                         {{ form.description }}
                     </div>
                     
+                    <!-- Team Field -->
                     <div class="form-group">
+                        <label class="form-label"><i class="fas fa-building"></i> Team (Optional)</label>
+                        {{ form.team }}
+                        <div class="form-text">Select a team to automatically add its members to this project.</div>
+                    </div>
+                    
+                    <!-- Members Field -->
+                    <div class="form-group" id="membersGroup">
                         <label class="form-label"><i class="fas fa-users"></i> Team Members</label>
                         {{ form.members }}
-                        <div class="form-text">Hold Ctrl to select multiple members. Team members are shown first.</div>
+                        <div class="form-text" id="membersHelpText">
+                            Hold Ctrl to select multiple members.
+                        </div>
                     </div>
                     
                     <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
@@ -49,4 +62,43 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const teamSelect = document.querySelector('#id_team');
+    const membersSelect = document.querySelector('#id_members');
+    const membersHelpText = document.querySelector('#membersHelpText');
+    
+    function toggleMembersField() {
+        if (teamSelect && teamSelect.value) {
+            // Team is selected - disable members field
+            if (membersSelect) {
+                membersSelect.disabled = true;
+                membersSelect.style.opacity = '0.6';
+                membersSelect.style.cursor = 'not-allowed';
+            }
+            if (membersHelpText) {
+                membersHelpText.innerHTML = '<i class="fas fa-info-circle"></i> Members are managed automatically from the selected team.';
+                membersHelpText.style.color = '#10b981';
+            }
+        } else {
+            // No team selected - enable members field
+            if (membersSelect) {
+                membersSelect.disabled = false;
+                membersSelect.style.opacity = '1';
+                membersSelect.style.cursor = 'pointer';
+            }
+            if (membersHelpText) {
+                membersHelpText.innerHTML = 'Hold Ctrl to select multiple members.';
+                membersHelpText.style.color = '#6b7280';
+            }
+        }
+    }
+    
+    if (teamSelect) {
+        teamSelect.addEventListener('change', toggleMembersField);
+        toggleMembersField(); // Run on page load
+    }
+});
+</script>
 {% endblock %}

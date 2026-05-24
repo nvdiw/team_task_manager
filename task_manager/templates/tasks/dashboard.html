@@ -252,6 +252,65 @@
     </div>
 </div>
 
+<!-- Leaderboard Section -->
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white;">
+                <h4><i class="fas fa-crown"></i> 🏆 Leaderboard - Top Performers</h4>
+            </div>
+            <div class="card-body">
+                {% if leaderboard %}
+                    <div class="leaderboard-table">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--gray-light);">#</th>
+                                    <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--gray-light);">User</th>
+                                    <th style="text-align: center; padding: 0.75rem; border-bottom: 2px solid var(--gray-light);">Points</th>
+                                    <th style="text-align: center; padding: 0.75rem; border-bottom: 2px solid var(--gray-light);">Level</th>
+                                    <th style="text-align: center; padding: 0.75rem; border-bottom: 2px solid var(--gray-light);">Tasks Done</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for profile in leaderboard %}
+                                    <tr style="border-bottom: 1px solid var(--gray-light);">
+                                        <td style="padding: 0.75rem;">
+                                            {% if forloop.counter == 1 %}🥇
+                                            {% elif forloop.counter == 2 %}🥈
+                                            {% elif forloop.counter == 3 %}🥉
+                                            {% else %}{{ forloop.counter }}{% endif %}
+                                        </td>
+                                        <td style="padding: 0.75rem;">
+                                            <strong>{{ profile.user.get_full_name|default:profile.user.username }}</strong>
+                                            <br>
+                                            <small class="text-muted">@{{ profile.user.username }}</small>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem;">
+                                            <span class="badge" style="background: #f59e0b; color: white;">{{ profile.points }} pts</span>
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem;">
+                                            Level {{ profile.level }}
+                                        </td>
+                                        <td style="text-align: center; padding: 0.75rem;">
+                                            {{ profile.total_tasks_completed }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center" style="padding: 2rem;">
+                        <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--gray);"></i>
+                        <p>No data yet. Complete tasks to see the leaderboard!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}

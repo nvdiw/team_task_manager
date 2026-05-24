@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 import json
 from datetime import datetime
 from django.http import JsonResponse
-from .models import Project, Task, Comment, TaskAttachment
+from .models import Project, Task, Comment, TaskAttachment, UserProfile, PointTransaction
 from .forms import ProjectForm, TaskForm, CommentForm, TaskAttachmentForm
 from tasks.models import Team
 # ==================== PROJECT VIEWS ====================
@@ -55,8 +55,18 @@ def project_list(request):
 def project_detail(request, pk):
     project = get_object_or_404(Project, pk=pk)
     
-    # Check if user has access
-    if request.user not in project.members.all() and request.user != project.created_by:
+    # Check if user has access (via team or manually added members)
+    has_access = False
+
+    if project.team:
+        # If project has a team, check team membership
+        if request.user in project.team.members.all():
+            has_access = True
+    elif project.members.filter(id=request.user.id).exists():
+        # If no team, check direct membership
+        has_access = True
+
+    if not has_access and request.user != project.created_by:
         messages.error(request, 'You do not have access to this project.')
         return redirect('tasks:project_list')
     
@@ -133,7 +143,11 @@ def project_create(request):
             project = form.save(commit=False)
             project.created_by = request.user
             project.save()
-            form.save_m2m()
+
+            if project.team:
+                project.members.set(project.team.members.all())
+            else:
+                form.save_m2m()
             messages.success(request, 'Project created successfully!')
             return redirect('tasks:project_detail', pk=project.pk)
     else:
@@ -178,11 +192,18 @@ def project_edit(request, pk):
         form = ProjectForm(request.POST, instance=project)
         if form.is_valid():
             form.save()
+            if project.team:
+                project.members.set(project.team.members.all())
             messages.success(request, 'Project updated successfully!')
             return redirect('tasks:project_detail', pk=project.pk)
     else:
         form = ProjectForm(instance=project)
-        
+
+        if project.team:
+            form.fields['members'].queryset = project.team.members.all()
+        else:
+            form.fields['members'].queryset = User.objects.all()
+
         # Get user's teams
         user_teams = request.user.teams.all()
         team_members = []
@@ -206,7 +227,6 @@ def project_edit(request, pk):
         # Create ordering for queryset
         preserved = Case(*[When(pk=member.pk, then=Value(index)) for index, member in enumerate(ordered_members)], default=Value(len(ordered_members)), output_field=IntegerField())
         
-        form.fields['members'].queryset = User.objects.all().order_by(preserved)
     
     return render(request, 'tasks/project_form.html', {'form': form, 'title': 'Edit Project'})
 
@@ -340,20 +360,49 @@ def task_delete(request, pk):
 def task_toggle_status(request, pk):
     task = get_object_or_404(Task, pk=pk)
     
-    # Check permission: only assigned_to or project creator
     if request.user != task.assigned_to and request.user != task.project.created_by:
         messages.error(request, 'You do not have permission to change this task status.')
         return redirect('tasks:project_detail', pk=task.project.pk)
     
-    # Get new status from POST data
     new_status = request.POST.get('status')
     
     if new_status and new_status in [Task.Status.TODO, Task.Status.IN_PROGRESS, Task.Status.DONE]:
+        old_status = task.status
         task.status = new_status
         task.save()
         messages.success(request, f'Task status changed to {task.get_status_display()}')
+        
+        # اگر تسک به DONE تغییر کرده و قبلاً DONE نبوده و امتیاز هنوز داده نشده
+        if new_status == Task.Status.DONE and old_status != Task.Status.DONE and not task.points_awarded:
+            # محاسبه امتیاز بر اساس اولویت
+            points_map = {
+                Task.Priority.LOW: 10,
+                Task.Priority.MEDIUM: 20,
+                Task.Priority.HIGH: 30,
+                Task.Priority.URGENT: 50,
+            }
+            points = points_map.get(task.priority, 10)
+            
+            # به کاربر اختصاص یافته (assigned_to) امتیاز بده، اگر وجود داشته باشد
+            if task.assigned_to:
+                profile = task.assigned_to.profile
+                profile.points += points
+                profile.total_tasks_completed += 1
+                profile.save()
+                
+                # ثبت تراکنش
+                PointTransaction.objects.create(
+                    user=task.assigned_to,
+                    task=task,
+                    points_earned=points,
+                    description=f"Completed task '{task.title}' (Priority: {task.get_priority_display()})"
+                )
+                
+                task.points_awarded = True
+                task.save()
+                
+                messages.success(request, f'🎉 +{points} points awarded to {task.assigned_to.username}!')
     
-    # Preserve filter parameters
     next_url = request.META.get('HTTP_REFERER', f"/projects/{task.project.pk}/")
     return redirect(next_url)
 
@@ -502,7 +551,9 @@ def dashboard(request):
         priority=Task.Priority.URGENT,
         status=Task.Status.IN_PROGRESS
     ).select_related('project', 'assigned_to')[:5]
-    
+
+    top_users = UserProfile.objects.select_related('user').order_by('-points')[:5]
+
     context = {
         'total_projects': total_projects,
         'total_tasks': total_tasks,
@@ -525,6 +576,7 @@ def dashboard(request):
         'top_overdue_projects': top_overdue_projects,
         'recent_comments': recent_comments,
         'urgent_in_progress': urgent_in_progress,
+        'leaderboard': top_users,
     }
     
     return render(request, 'tasks/dashboard.html', context)
@@ -668,3 +720,42 @@ def team_detail(request, pk):
         'members': members,
         'projects': projects,
     })
+
+@login_required
+def my_tasks(request):
+    """Show tasks assigned to the current user"""
+    
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    priority_filter = request.GET.get('priority', '')
+    
+    # Start with tasks assigned to current user
+    tasks_list = Task.objects.filter(assigned_to=request.user).select_related('project', 'created_by')
+    
+    # Apply filters
+    if status_filter:
+        tasks_list = tasks_list.filter(status=status_filter)
+    
+    if priority_filter:
+        tasks_list = tasks_list.filter(priority=priority_filter)
+    
+    # Pagination
+    paginator = Paginator(tasks_list, 10)
+    page_number = request.GET.get('page')
+    tasks = paginator.get_page(page_number)
+    
+    # Get counts for badges
+    todo_count = Task.objects.filter(assigned_to=request.user, status=Task.Status.TODO).count()
+    in_progress_count = Task.objects.filter(assigned_to=request.user, status=Task.Status.IN_PROGRESS).count()
+    done_count = Task.objects.filter(assigned_to=request.user, status=Task.Status.DONE).count()
+    
+    context = {
+        'tasks': tasks,
+        'todo_count': todo_count,
+        'in_progress_count': in_progress_count,
+        'done_count': done_count,
+        'status_filter': status_filter,
+        'priority_filter': priority_filter,
+    }
+    
+    return render(request, 'tasks/my_tasks.html', context)
